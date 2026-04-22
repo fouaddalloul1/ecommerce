@@ -1,5 +1,5 @@
 <?php
-namespace Modules\Auth\app\Data;
+namespace Modules\Auth\Data;
 
 class RegisterData
 {

@@ -1,15 +1,17 @@
 <?php
-namespace Modules\Auth\app\Http\Controllers;
+namespace Modules\Auth\Http\Controllers;
 
 use Illuminate\Routing\Controller;
 use App\Http\Resources\MainResource;
-use Modules\Auth\app\Http\Requests\RegisterRequest;
-use Modules\Auth\app\Http\Requests\LoginRequest;
-use Modules\Auth\app\Data\RegisterData;
-use Modules\Auth\app\Data\LoginData;
-use Modules\User\app\Models\User;
+use Modules\Auth\Http\Requests\RegisterRequest;
+use Modules\Auth\Http\Requests\LoginRequest;
+use Modules\Auth\Data\RegisterData;
+use Modules\Auth\Data\LoginData;
+use Modules\User\Models\User;
+use Illuminate\Support\Facades\Auth;
 
-use Modules\Auth\app\Repositories\AuthRepository;
+use Modules\Auth\Repositories\AuthRepository;
+
 use Symfony\Component\HttpFoundation\Response as ResponseAlias;
 
 class AuthController extends Controller
@@ -40,7 +42,7 @@ class AuthController extends Controller
         $user = auth()->user() ?? User::where('email', $data->email)->first();
 
         return MainResource::make([
-            'user' => $user,
+            'user' => "$user->first_name $user->last_name",
             'token' => $token,
         ], 'Logged in');
     }

@@ -1,22 +1,30 @@
 <?php
 
-namespace Modules\User\app\Models;
-
-use Illuminate\Database\Eloquent\Model;
+namespace Modules\User\Models;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-// use Modules\User\Database\Factories\UserFactory;
 
-class User extends Model
+class User extends Authenticatable
 {
-    use HasFactory;
+    use HasApiTokens, Notifiable, HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     */
-    protected $fillable = [];
+    protected $table = 'users';
 
-    // protected static function newFactory(): UserFactory
-    // {
-    //     // return UserFactory::new();
-    // }
+    protected $fillable = [
+        'first_name',
+        'last_name',
+        'email',
+        'password',
+    ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+    ];
 }

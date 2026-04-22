@@ -1,10 +1,10 @@
 <?php
-namespace Modules\Auth\app\Repositories;
+namespace Modules\Auth\Repositories;
 
-use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Modules\Auth\app\Data\RegisterData;
-use Modules\Auth\app\Data\LoginData;
+use Modules\Auth\Data\RegisterData;
+use Modules\Auth\Data\LoginData;
+use Modules\User\Models\User;
 
 class AuthRepository
 {
