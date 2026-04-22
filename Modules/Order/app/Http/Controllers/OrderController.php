@@ -1,56 +1,50 @@
 <?php
-
 namespace Modules\Order\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use App\Http\Resources\MainResource;
+use Modules\Order\Http\Requests\StoreOrderRequest;
+use Modules\Order\Http\Requests\UpdateOrderStatusRequest;
+use Modules\Order\Data\CreateOrderData;
+use Modules\Order\Repositories\OrderRepository;
+use Modules\Order\Http\Resources\OrderResource;
+use Symfony\Component\HttpFoundation\Response as ResponseAlias;
 
 class OrderController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function __construct(private OrderRepository $repository) {}
+
+    public function store(StoreOrderRequest $request): MainResource
     {
-        return view('order::index');
+        $data = CreateOrderData::from(array_merge($request->validated(), ['user_id' => auth()->id()]));
+        $order = $this->repository->create($data);
+
+        return MainResource::make(new OrderResource($order), 'Order created', ResponseAlias::HTTP_CREATED);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function show(int $id): MainResource
     {
-        return view('order::create');
+        $order = $this->repository->find($id);
+        return MainResource::make(new OrderResource($order));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request) {}
-
-    /**
-     * Show the specified resource.
-     */
-    public function show($id)
+    public function myOrders(): MainResource
     {
-        return view('order::show');
+        $orders = $this->repository->listForUser(auth()->id(), request('per_page', 15));
+        return MainResource::make(OrderResource::collection($orders));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit($id)
+    public function updateStatus(UpdateOrderStatusRequest $request, int $id): MainResource
     {
-        return view('order::edit');
+        $order = $this->repository->find($id);
+        $order = $this->repository->updateStatus($order, $request->input('status'), $request->input('payment_status'));
+        return MainResource::make(new OrderResource($order), 'Order status updated');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id) {}
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id) {}
+    public function cancel(int $id): MainResource
+    {
+        $order = $this->repository->find($id);
+        $order = $this->repository->cancel($order);
+        return MainResource::make(new OrderResource($order), 'Order cancelled');
+    }
 }
