@@ -2,55 +2,73 @@
 
 namespace Modules\Product\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use App\Http\Resources\MainResource;
+use Modules\Product\Http\Requests\IndexProductRequest;
+use Modules\Product\Http\Requests\StoreProductRequest;
+use Modules\Product\Data\IndexProductData;
+use Modules\Product\Repositories\ProductRepository;
+use Modules\Product\Http\Resources\ProductResource;
+use Symfony\Component\HttpFoundation\Response as ResponseAlias;
+use Modules\Product\Models\Product;
 
 class ProductController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function __construct(private ProductRepository $repository) {}
+
+    public function index(IndexProductRequest $request): MainResource
     {
-        return view('product::index');
+        $data = IndexProductData::from($request->validated());
+        $products = $this->repository->index($data);
+
+        return MainResource::make(ProductResource::collection($products), null, ResponseAlias::HTTP_OK);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function show(int $id): MainResource
     {
-        return view('product::create');
+        $product = $this->repository->show($id);
+        return MainResource::make(new ProductResource($product));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request) {}
-
-    /**
-     * Show the specified resource.
-     */
-    public function show($id)
+    public function store(StoreProductRequest $request): MainResource
     {
-        return view('product::show');
+        $payload = $request->validated();
+        $product = $this->repository->create($payload);
+
+        return MainResource::make(new ProductResource($product), 'Product created', ResponseAlias::HTTP_CREATED);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit($id)
+    public function update(StoreProductRequest $request, int $id): MainResource
     {
-        return view('product::edit');
+        $product = $this->repository->show($id);
+        $product = $this->repository->update($product, $request->validated());
+
+        return MainResource::make(new ProductResource($product), 'Product updated');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id) {}
+    public function destroy(int $id): MainResource
+    {
+        $product = $this->repository->show($id);
+        $this->repository->delete($product);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id) {}
+        return MainResource::make(null, 'Product deleted', ResponseAlias::HTTP_NO_CONTENT);
+    }
+    // inside ProductController class
+
+    public function byCategoryId(IndexProductRequest $request, int $categoryId): MainResource
+    {
+        $data = IndexProductData::from(array_merge($request->validated(), ['category_id' => $categoryId]));
+        $products = $this->repository->index($data);
+
+        return MainResource::make(ProductResource::collection($products), null, ResponseAlias::HTTP_OK);
+    }
+
+    public function byCategorySlug(IndexProductRequest $request, string $slug): MainResource
+    {
+        // repository will resolve slug -> category_id
+        $data = IndexProductData::from($request->validated());
+        $products = $this->repository->indexByCategorySlug($data, $slug);
+
+        return MainResource::make(ProductResource::collection($products), null, ResponseAlias::HTTP_OK);
+    }
 }
