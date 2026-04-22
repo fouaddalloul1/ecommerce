@@ -1,56 +1,54 @@
 <?php
-
 namespace Modules\Category\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use App\Http\Resources\MainResource;
+use Modules\Category\Http\Requests\IndexCategoryRequest;
+use Modules\Category\Http\Requests\StoreCategoryRequest;
+use Modules\Category\Data\IndexCategoryData;
+use Modules\Category\Repositories\CategoryRepository;
+use Modules\Category\Http\Resources\CategoryResource;
+use Symfony\Component\HttpFoundation\Response as ResponseAlias;
 
 class CategoryController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function __construct(private CategoryRepository $repository) {}
+
+    public function index(IndexCategoryRequest $request): MainResource
     {
-        return view('category::index');
+        $data = IndexCategoryData::from($request->validated());
+        $categories = $this->repository->index($data);
+
+        return MainResource::make(CategoryResource::collection($categories), null, ResponseAlias::HTTP_OK);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function show(int $id): MainResource
     {
-        return view('category::create');
+        $category = $this->repository->findById($id);
+        return MainResource::make(new CategoryResource($category));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request) {}
-
-    /**
-     * Show the specified resource.
-     */
-    public function show($id)
+    public function store(StoreCategoryRequest $request): MainResource
     {
-        return view('category::show');
+        $payload = $request->validated();
+        $category = $this->repository->create($payload);
+
+        return MainResource::make(new CategoryResource($category), 'Category created', ResponseAlias::HTTP_CREATED);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit($id)
+    public function update(StoreCategoryRequest $request, int $id): MainResource
     {
-        return view('category::edit');
+        $category = $this->repository->findById($id);
+        $category = $this->repository->update($category, $request->validated());
+
+        return MainResource::make(new CategoryResource($category), 'Category updated');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id) {}
+    public function destroy(int $id): MainResource
+    {
+        $category = $this->repository->findById($id);
+        $this->repository->delete($category);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id) {}
+        return MainResource::make(null, 'Category deleted', ResponseAlias::HTTP_NO_CONTENT);
+    }
 }
