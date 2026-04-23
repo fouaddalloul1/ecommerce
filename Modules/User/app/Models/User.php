@@ -1,10 +1,13 @@
 <?php
 
 namespace Modules\User\Models;
+
+
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Modules\User\Database\Factories\UserFactory;
 
 class User extends Authenticatable
 {
@@ -27,4 +30,9 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    protected static function newFactory()
+    {
+        return UserFactory::new();
+    }
 }
