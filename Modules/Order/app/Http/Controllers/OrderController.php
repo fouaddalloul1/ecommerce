@@ -1,4 +1,5 @@
 <?php
+
 namespace Modules\Order\Http\Controllers;
 
 use Illuminate\Routing\Controller;
@@ -14,12 +15,48 @@ class OrderController extends Controller
 {
     public function __construct(private OrderRepository $repository) {}
 
-    public function store(StoreOrderRequest $request): MainResource
+    /**
+     * @OA\Post(
+     *     path="/api/v1/orders",
+     *     tags={"Orders"},
+     *     summary="Create a new order",
+     *     security={{"sanctum":{}}},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"items"},
+     *
+     *             @OA\Property(property="items", type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="product_id", type="integer", example=1),
+     *                     @OA\Property(property="quantity", type="integer", example=2)
+     *                 )
+     *             ),
+     *
+     *             @OA\Property(property="shipping", type="number", example=10),
+     *             @OA\Property(property="currency", type="string", example="USD")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=201,
+     *         description="Order created successfully"
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=400,
+     *         description="Validation error"
+     *     )
+     * )
+     */
+    public function create(StoreOrderRequest $request): MainResource
     {
         $data = CreateOrderData::from(array_merge($request->validated(), ['user_id' => auth()->id()]));
-        $order = $this->repository->create($data);
+        $this->repository->create($data);
 
-        return MainResource::make(new OrderResource($order), 'Order created', ResponseAlias::HTTP_CREATED);
+        // return MainResource::make(new OrderResource($order), 'Order created', ResponseAlias::HTTP_CREATED);
+        return MainResource::make();
     }
 
     public function show(int $id): MainResource

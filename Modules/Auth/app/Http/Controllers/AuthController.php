@@ -21,7 +21,9 @@ class AuthController extends Controller
     public function register(RegisterRequest $request): MainResource
     {
         $data = RegisterData::from($request->validated());
+
         $user = $this->repository->register($data);
+        
         $token = $user->createToken('api-token')->plainTextToken;
 
         return MainResource::make([
@@ -34,7 +36,7 @@ class AuthController extends Controller
     {
         $data = LoginData::from($request->validated());
         $token = $this->repository->login($data);
-
+    
         if (! $token) {
             return MainResource::make(null, 'Invalid credentials', ResponseAlias::HTTP_UNAUTHORIZED);
         }

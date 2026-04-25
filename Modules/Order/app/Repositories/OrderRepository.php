@@ -1,4 +1,5 @@
 <?php
+
 namespace Modules\Order\Repositories;
 
 use Modules\Order\Models\Order;
@@ -6,73 +7,80 @@ use Modules\Order\Models\OrderItem;
 use Modules\Product\Models\Product;
 use Modules\Order\Data\CreateOrderData;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use Modules\Order\app\Enums\OrderStatus;
+use Modules\Order\Enums\PaymentStatus;
 
 class OrderRepository
 {
     public function create(CreateOrderData $data): Order
     {
         return DB::transaction(function () use ($data) {
-            // compute totals and validate stock
-            $subtotal = 0;
+            $total = 0;
             $itemsPayload = [];
 
+            // Get all product ids once (outside loop)
+            $productIds = collect($data->items)
+                ->pluck('product_id')
+                ->unique()
+                ->values()
+                ->toArray();
+
+            // Single query + lock rows
+            $products = Product::query()
+                ->whereIn('id', $productIds)
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
             foreach ($data->items as $item) {
-                $product = Product::lockForUpdate()->findOrFail($item['product_id']); // lock row
-                if ($product->stock < $item['quantity']) {
-                    throw new \Exception("Product {$product->id} does not have enough stock.");
+                $product = $products->get($item['product_id']);
+
+                if (! $product) {
+                    throw new \Exception(
+                        "Product {$item['product_id']} not found."
+                    );
                 }
 
-                $unitPrice = $product->selling_price;
-                $lineTotal = bcmul((string)$unitPrice, (string)$item['quantity'], 2);
-                $subtotal = bcadd((string)$subtotal, (string)$lineTotal, 2);
+                // This belongs here (repository/domain logic)
+                if ($product->stock < $item['quantity']) {
+                    throw new \Exception(
+                        "Product {$product->id} does not have enough stock."
+                    );
+                }
+
+                $lineTotal = $product->selling_price * $item['quantity'];
+                $total += $lineTotal;
 
                 $itemsPayload[] = [
                     'product' => $product,
                     'quantity' => $item['quantity'],
-                    'unit_price' => $unitPrice,
-                    'line_total' => $lineTotal,
-                    'meta' => $item['meta'] ?? null,
                 ];
             }
 
-            $shipping = $data->shipping ?? 0;
-            $total = bcadd((string)$subtotal, (string)$shipping, 2);
-
-            // create order
             $order = Order::create([
                 'user_id' => $data->user_id,
-                'order_number' => strtoupper(Str::random(10)),
-                'subtotal' => $subtotal,
-                'shipping' => $shipping,
                 'total' => $total,
-                'currency' => $data->currency ?? 'USD',
-                'status' => 'pending',
-                'payment_status' => 'unpaid',
-                'shipping_address' => $data->shipping_address,
-                'billing_address' => $data->billing_address,
+                'status' => OrderStatus::PENDING->value,
+                'payment_status' => PaymentStatus::UNPAID->value,
             ]);
 
-            // create items and decrement stock
-            foreach ($itemsPayload as $p) {
+            foreach ($itemsPayload as $item) {
                 OrderItem::create([
                     'order_id' => $order->id,
-                    'product_id' => $p['product']->id,
-                    'product_name' => $p['product']->name,
-                    'sku' => $p['product']->sku,
-                    'unit_price' => $p['unit_price'],
-                    'quantity' => $p['quantity'],
-                    'line_total' => $p['line_total'],
-                    'meta' => $p['meta'],
+                    'product_id' => $item['product']->id,
+                    'quantity' => $item['quantity'],
                 ]);
 
-                // decrement stock
-                $p['product']->decrement('stock', $p['quantity']);
+                $item['product']->decrement(
+                    'stock',
+                    $item['quantity']
+                );
             }
 
             return $order->load('items');
         });
     }
+
 
     public function find(int $id): Order
     {
