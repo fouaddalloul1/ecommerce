@@ -1,7 +1,8 @@
 <?php
+
 namespace Modules\Category\Http\Controllers;
 
-use Illuminate\Routing\Controller;
+use App\Http\Controllers\Controller;
 use App\Http\Resources\MainResource;
 use Modules\Category\Http\Requests\IndexCategoryRequest;
 use Modules\Category\Http\Requests\StoreCategoryRequest;

@@ -2,6 +2,6 @@
 
 namespace $CLASS_NAMESPACE$;
 
-use Illuminate\Routing\Controller;
+use App\Http\Controllers\Controller;
 
 class $CLASS$ extends Controller {}
