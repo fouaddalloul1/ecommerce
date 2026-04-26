@@ -1,4 +1,5 @@
 <?php
+
 namespace Modules\Auth\Http\Controllers;
 
 use Illuminate\Routing\Controller;
@@ -9,9 +10,10 @@ use Modules\Auth\Data\RegisterData;
 use Modules\Auth\Data\LoginData;
 use Modules\User\Models\User;
 use Illuminate\Support\Facades\Auth;
-
+use Modules\Auth\Http\Resources\AuthResource;
+use Modules\Auth\Http\Resources\LoginResource;
 use Modules\Auth\Repositories\AuthRepository;
-
+use Modules\User\Http\Resources\UserResource;
 use Symfony\Component\HttpFoundation\Response as ResponseAlias;
 
 class AuthController extends Controller
@@ -21,36 +23,31 @@ class AuthController extends Controller
     public function register(RegisterRequest $request): MainResource
     {
         $data = RegisterData::from($request->validated());
-        $user = $this->repository->register($data);
-        $token = $user->createToken('api-token')->plainTextToken;
-
-        return MainResource::make([
-            'user' => $user,
-            'token' => $token,
-        ], 'Registered', ResponseAlias::HTTP_CREATED);
+        $result = $this->repository->register($data);
+        return MainResource::make(
+            new AuthResource($result),
+            'Registered'
+        );
     }
-
     public function login(LoginRequest $request): MainResource
     {
         $data = LoginData::from($request->validated());
-        $token = $this->repository->login($data);
 
-        if (! $token) {
+        $result = $this->repository->login($data);
+
+        if (! $result) {
             return MainResource::make(null, 'Invalid credentials', ResponseAlias::HTTP_UNAUTHORIZED);
         }
 
-        $user = auth()->user() ?? User::where('email', $data->email)->first();
-
-        return MainResource::make([
-            'user' => "$user->first_name $user->last_name",
-            'token' => $token,
-        ], 'Logged in');
+        return MainResource::make(
+            new AuthResource($result),
+            'Logged in'
+        );
     }
 
     public function logout(): MainResource
     {
         $this->repository->logout(auth()->user());
-
         return MainResource::make(null, 'Logged out');
     }
 
