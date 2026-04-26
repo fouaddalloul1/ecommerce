@@ -1,26 +1,36 @@
 <?php
 namespace Modules\Order\Repositories;
 
+use Exception;
 use Modules\Order\Models\Order;
 use Modules\Order\Models\OrderItem;
 use Modules\Product\Models\Product;
 use Modules\Order\Data\CreateOrderData;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Modules\Product\Repositories\ProductRepository;
 
 class OrderRepository
 {
+
+
+    public function __construct(
+        protected ProductRepository $productRepository
+    ) {}
     public function create(CreateOrderData $data): Order
     {
         return DB::transaction(function () use ($data) {
-            // compute totals and validate stock
+
             $subtotal = 0;
             $itemsPayload = [];
 
+            // 1) Validate stock + compute totals
             foreach ($data->items as $item) {
-                $product = Product::lockForUpdate()->findOrFail($item['product_id']); // lock row
+
+                $product = Product::lockForUpdate()->findOrFail($item['product_id']);
+
                 if ($product->stock < $item['quantity']) {
-                    throw new \Exception("Product {$product->id} does not have enough stock.");
+                    throw new Exception("Product {$product->id} does not have enough stock.");
                 }
 
                 $unitPrice = $product->selling_price;
@@ -39,7 +49,7 @@ class OrderRepository
             $shipping = $data->shipping ?? 0;
             $total = bcadd((string)$subtotal, (string)$shipping, 2);
 
-            // create order
+            // 2) Create order
             $order = Order::create([
                 'user_id' => $data->user_id,
                 'order_number' => strtoupper(Str::random(10)),
@@ -53,8 +63,9 @@ class OrderRepository
                 'billing_address' => $data->billing_address,
             ]);
 
-            // create items and decrement stock
+            // 3) Create items + decrement stock using adjustStock()
             foreach ($itemsPayload as $p) {
+
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $p['product']->id,
@@ -66,8 +77,13 @@ class OrderRepository
                     'meta' => $p['meta'],
                 ]);
 
-                // decrement stock
-                $p['product']->decrement('stock', $p['quantity']);
+                // 🔥 Replace direct decrement with centralized stock logic
+                $this->productRepository->adjustStock(
+                    productId: $p['product']->id,
+                    delta: -$p['quantity'],
+                    reason: 'order_placed',
+                    referenceId: $order->id
+                );
             }
 
             return $order->load('items');
