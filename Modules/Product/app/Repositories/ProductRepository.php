@@ -2,11 +2,14 @@
 
 namespace Modules\Product\Repositories;
 
+use Exception;
+use Illuminate\Support\Facades\DB;
 use Modules\Product\Data\IndexProductData;
 use Modules\Product\Models\Product;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Modules\Category\Models\Category;
 use Illuminate\Support\Facades\Cache;
+use Modules\Product\Models\StockMovement;
 
 class ProductRepository
 {
@@ -65,4 +68,26 @@ class ProductRepository
     {
         $product->delete();
     }
+    public function adjustStock(int $productId, int $delta, string $reason, ?int $referenceId = null): void
+    {
+        DB::transaction(function () use ($productId, $delta, $reason, $referenceId) {
+            $product = Product::where('id', $productId)->lockForUpdate()->firstOrFail();
+
+            $newStock = $product->stock + $delta;
+            if ($newStock < 0) {
+                throw new Exception("Not enough stock for product {$product->name}");
+            }
+
+            $product->stock = $newStock;
+            $product->save();
+
+            StockMovement::create([
+                'product_id' => $productId,
+                'quantity_change' => $delta,
+                'reason' => $reason,
+                'reference_id' => $referenceId,
+            ]);
+        });
+    }
+
 }
