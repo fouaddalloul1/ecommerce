@@ -96,9 +96,10 @@
     "components": {
         "securitySchemes": {
             "sanctum": {
-                "type": "http",
-                "scheme": "bearer",
-                "description": "Enter token (Bearer prefix will be added automatically)"
+                "type": "apiKey",
+                "description": "Enter token as: Bearer {your_token}",
+                "name": "Authorization",
+                "in": "header"
             }
         }
     },
