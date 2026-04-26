@@ -2,7 +2,7 @@
 
 namespace Modules\Product\Http\Controllers;
 
-use Illuminate\Routing\Controller;
+use App\Http\Controllers\Controller;
 use App\Http\Resources\MainResource;
 use Modules\Product\Http\Requests\IndexProductRequest;
 use Modules\Product\Http\Requests\StoreProductRequest;

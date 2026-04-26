@@ -2,14 +2,15 @@
 
 namespace Modules\Order\Http\Controllers;
 
-use Illuminate\Routing\Controller;
+use App\Http\Controllers\Controller;
 use App\Http\Resources\MainResource;
 use Modules\Order\Http\Requests\StoreOrderRequest;
 use Modules\Order\Http\Requests\UpdateOrderStatusRequest;
 use Modules\Order\Data\CreateOrderData;
 use Modules\Order\Repositories\OrderRepository;
 use Modules\Order\Http\Resources\OrderResource;
-use Symfony\Component\HttpFoundation\Response as ResponseAlias;
+use OpenApi\Annotations as OA;
+
 
 class OrderController extends Controller
 {
@@ -27,7 +28,9 @@ class OrderController extends Controller
      *         @OA\JsonContent(
      *             required={"items"},
      *
-     *             @OA\Property(property="items", type="array",
+     *             @OA\Property(
+     *                 property="items",
+     *                 type="array",
      *                 @OA\Items(
      *                     @OA\Property(property="product_id", type="integer", example=1),
      *                     @OA\Property(property="quantity", type="integer", example=2)
@@ -41,12 +44,24 @@ class OrderController extends Controller
      *
      *     @OA\Response(
      *         response=201,
-     *         description="Order created successfully"
+     *         description="Order created successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Order created"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="object"
+     *             )
+     *         )
      *     ),
      *
      *     @OA\Response(
-     *         response=400,
+     *         response=422,
      *         description="Validation error"
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated"
      *     )
      * )
      */

@@ -2,9 +2,9 @@
 
 namespace Modules\Order\Data;
 
-use App\Data\SpatieData;
+use Spatie\LaravelData\Data;
 
-class CreateOrderData extends SpatieData
+class CreateOrderData extends Data
 {
 
     public function __construct(

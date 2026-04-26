@@ -1,7 +1,7 @@
 <?php
 namespace Modules\Auth\Http\Controllers;
 
-use Illuminate\Routing\Controller;
+use App\Http\Controllers\Controller;
 use App\Http\Resources\MainResource;
 use Modules\Auth\Http\Requests\RegisterRequest;
 use Modules\Auth\Http\Requests\LoginRequest;
