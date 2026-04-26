@@ -8,13 +8,8 @@ use Modules\Order\Models\OrderItem;
 use Modules\Product\Models\Product;
 use Modules\Order\Data\CreateOrderData;
 use Illuminate\Support\Facades\DB;
-<<<<<<< HEAD
 use Modules\Order\app\Enums\OrderStatus;
 use Modules\Order\Enums\PaymentStatus;
-=======
-use Illuminate\Support\Str;
-use Modules\Product\Repositories\ProductRepository;
->>>>>>> f66e1e2236efaf1efb93e152b8bff452e7312704
 
 class OrderRepository
 {
@@ -68,13 +63,6 @@ class OrderRepository
                 ];
             }
 
-<<<<<<< HEAD
-=======
-            $shipping = $data->shipping ?? 0;
-            $total = bcadd((string)$subtotal, (string)$shipping, 2);
-
-            // 2) Create order
->>>>>>> f66e1e2236efaf1efb93e152b8bff452e7312704
             $order = Order::create([
                 'user_id' => $data->user_id,
                 'total' => $total,
@@ -82,31 +70,16 @@ class OrderRepository
                 'payment_status' => PaymentStatus::UNPAID->value,
             ]);
 
-<<<<<<< HEAD
             foreach ($itemsPayload as $item) {
-=======
-            // 3) Create items + decrement stock using adjustStock()
-            foreach ($itemsPayload as $p) {
-
->>>>>>> f66e1e2236efaf1efb93e152b8bff452e7312704
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $item['product']->id,
                     'quantity' => $item['quantity'],
                 ]);
 
-<<<<<<< HEAD
                 $item['product']->decrement(
                     'stock',
                     $item['quantity']
-=======
-                // 🔥 Replace direct decrement with centralized stock logic
-                $this->productRepository->adjustStock(
-                    productId: $p['product']->id,
-                    delta: -$p['quantity'],
-                    reason: 'order_placed',
-                    referenceId: $order->id
->>>>>>> f66e1e2236efaf1efb93e152b8bff452e7312704
                 );
             }
 

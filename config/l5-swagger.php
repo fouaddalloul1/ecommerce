@@ -109,8 +109,8 @@ return [
              * @link https://zircote.github.io/swagger-php/reference/processors.html
              */
             'default_processors_configuration' => [
-            /** Example */
-            /**
+                /** Example */
+                /**
              * 'operationId.hash' => true,
              * 'pathFilter' => [
              * 'tags' => [
@@ -210,10 +210,11 @@ return [
                     ],
                 ],
                 */
-                'sanctum' => [ // Unique name of security
-                    'type' => 'http',
-                    'scheme' => 'bearer',
-                    'description' => 'Enter token (Bearer prefix will be added automatically)',
+                'sanctum' => [
+                    'type' => 'apiKey',
+                    'description' => 'Enter token as: Bearer {your_token}',
+                    'name' => 'Authorization',
+                    'in' => 'header',
                 ],
             ],
             'security' => [
