@@ -41,7 +41,7 @@ class AuthController extends Controller
      *             @OA\Property(
      *                 property="email",
      *                 type="string",
-     *                 example="john@example.com"
+     *                 example="user1@test.com"
      *             ),
      *             @OA\Property(
      *                 property="password",
@@ -116,7 +116,7 @@ class AuthController extends Controller
      *             @OA\Property(
      *                 property="email",
      *                 type="string",
-     *                 example="john@example.com"
+     *                 example="user1@test.com"
      *             ),
      *             @OA\Property(
      *                 property="password",

@@ -9,7 +9,8 @@ Route::prefix('v1')
     ->controller(OrderController::class)
     ->group(function () {
 
-        Route::post('orders', 'create');
+        Route::post('orders', 'create')
+        ->middleware('capacity');
         Route::get('orders/my', 'myOrders');
         Route::get('orders/{id}', 'show');
         Route::post('orders/{id}/cancel', 'cancel');
