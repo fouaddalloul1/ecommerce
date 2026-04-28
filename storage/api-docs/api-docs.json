@@ -35,7 +35,7 @@
                                     },
                                     "email": {
                                         "type": "string",
-                                        "example": "john@example.com"
+                                        "example": "user1@test.com"
                                     },
                                     "password": {
                                         "type": "string",
@@ -105,7 +105,7 @@
                                 "properties": {
                                     "email": {
                                         "type": "string",
-                                        "example": "john@example.com"
+                                        "example": "user1@test.com"
                                     },
                                     "password": {
                                         "type": "string",
@@ -183,14 +183,6 @@
                                             },
                                             "type": "object"
                                         }
-                                    },
-                                    "shipping": {
-                                        "type": "number",
-                                        "example": 10
-                                    },
-                                    "currency": {
-                                        "type": "string",
-                                        "example": "USD"
                                     }
                                 },
                                 "type": "object"

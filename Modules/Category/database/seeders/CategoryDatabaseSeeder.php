@@ -3,22 +3,29 @@
 namespace Modules\Category\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Modules\Category\Models\Category;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+
 class CategoryDatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $fixed = [
-            ['name' => 'Electronics', 'slug' => 'electronics'],
-            ['name' => 'Clothing', 'slug' => 'clothing'],
-            ['name' => 'Home & Kitchen', 'slug' => 'home-kitchen'],
-            ['name' => 'Books', 'slug' => 'books'],
+        $categories = [
+            'Electronics',
+            'Clothing',
+            'Shoes',
+            'Accessories',
         ];
 
-        foreach ($fixed as $f) {
-            Category::updateOrCreate(['slug' => $f['slug']], array_merge($f, ['description' => $f['name'] . ' category', 'is_active' => true]));
+        foreach ($categories as $name) {
+            DB::table('categories')->insert([
+                'name' => $name,
+                'slug' => Str::slug($name),
+                'description' => $name . ' products',
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
         }
-
-        \Modules\Category\Database\Factories\CategoryFactory::new()->count(8)->create();
     }
 }

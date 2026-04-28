@@ -8,16 +8,16 @@ use Modules\Order\Models\OrderItem;
 use Modules\Product\Models\Product;
 use Modules\Order\Data\CreateOrderData;
 use Illuminate\Support\Facades\DB;
-use Modules\Order\app\Enums\OrderStatus;
+use Modules\Order\Enums\OrderStatus;
 use Modules\Order\Enums\PaymentStatus;
+use Modules\Product\Repositories\ProductRepository;
 
 class OrderRepository
 {
-
-
     public function __construct(
         protected ProductRepository $productRepository
     ) {}
+
     public function create(CreateOrderData $data): Order
     {
         return DB::transaction(function () use ($data) {
