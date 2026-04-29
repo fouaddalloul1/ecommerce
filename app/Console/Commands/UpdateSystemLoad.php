@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
 
 class UpdateSystemLoad extends Command
@@ -16,6 +17,8 @@ class UpdateSystemLoad extends Command
 
             // Windows-compatible CPU usage approximation
             $load = $this->getCpuLoad();
+
+            Log::info("CPU Load: {$load}% ");
 
             Redis::set('system:cpu_load', $load);
 

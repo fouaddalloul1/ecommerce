@@ -10,8 +10,8 @@ const failedOther = new Counter('failed_other');
 
 export const options = {
     stages: [
-        { duration: '10s', target: 40 },//40 users looping requests for 10 seconds
-        { duration: '10s', target: 50 },
+        { duration: '15s', target: 100 },//1000 users looping requests for 10 seconds
+        { duration: '15s', target: 200 },
         { duration: '5s', target: 0 },
     ],
 };
@@ -31,7 +31,7 @@ export default function () {
     const params = {
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer 2|Lw1RuAilMBLO8dbEwIU87mFTClgiChuVFVGj41CC7c7f3b61',
+            'Authorization': 'Bearer 1|opMGLaHYXnRCY25mW7G6yTH48HHO2wDqz6q8n3RZbee41824',
             'Accept': 'application/json',
         },
     };

@@ -10,8 +10,12 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
+
     ->withRouting(
-        web: __DIR__ . '/../routes/web.php',
+        web: [
+            __DIR__ . '/../routes/web.php',
+            base_path('vendor/mohsenabrishami/stethoscope/routes/web.php')
+        ],
         commands: __DIR__ . '/../routes/console.php',
         health: '/up',
     )
@@ -54,7 +58,20 @@ return Application::configure(basePath: dirname(__DIR__))
         // Fallback for any other exception (500)
         $exceptions->render(function (\Throwable $e, Request $request) {
             if ($request->expectsJson() || $request->is('api/*')) {
-                return MainResource::make(null, 'Something went wrong.', 500);
+
+                // Actual message if exists
+                $message = $e->getMessage();
+
+                // If empty → fallback
+                if (empty($message)) {
+                    $message = 'Something went wrong.';
+                }
+
+                return MainResource::make(
+                    null,
+                    $message,
+                    500
+                );
             }
         });
     })

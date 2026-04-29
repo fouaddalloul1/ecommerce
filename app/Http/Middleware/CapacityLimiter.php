@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
 
 class CapacityLimiter
@@ -16,6 +17,8 @@ class CapacityLimiter
          */
         $cpu = (float) Redis::get('system:cpu_load') ?? 0;
 
+        Log::info('current cpu load : ' . $cpu . '%');
+
         /**
          * Dynamic limit based on system load
          */
@@ -25,6 +28,8 @@ class CapacityLimiter
             $cpu < 80 => 10,
             default   => 5,
         };
+
+        Log::info('capacity limit : ' . $limit);
 
         $ttl = 30;
 
@@ -58,6 +63,13 @@ class CapacityLimiter
          * Reject overloaded system
          */
         if ($result === -1) {
+            Log::warning('Capacity limit reached', [
+                'cpu' => $cpu,
+                'limit' => $limit,
+                'ip' => $request->ip(),
+                'route' => $request->path()
+            ]);
+
             abort(429, json_encode([
                 'message' => 'Server is busy',
                 'cpu' => $cpu,
@@ -67,7 +79,6 @@ class CapacityLimiter
 
         try {
             return $next($request);
-
         } finally {
             Redis::decr($key);
         }
