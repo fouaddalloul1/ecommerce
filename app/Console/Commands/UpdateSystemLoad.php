@@ -24,7 +24,7 @@ class UpdateSystemLoad extends Command
 
             $this->info("CPU Load Stored: {$load}%");
 
-            sleep(2); // update every 2 seconds
+            sleep(2); 
         }
     }
 

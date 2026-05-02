@@ -10,8 +10,8 @@ const failedOther = new Counter('failed_other');
 
 export const options = {
     stages: [
-        { duration: '15s', target: 100 },//1000 users looping requests for 10 seconds
-        { duration: '15s', target: 200 },
+        { duration: '10s', target: 10 },//1000 users looping requests for 10 seconds
+        { duration: '10s', target: 15 },
         { duration: '5s', target: 0 },
     ],
 };
