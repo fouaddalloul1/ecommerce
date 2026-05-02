@@ -8,7 +8,7 @@ class MainResource extends JsonResource
 {
     public static $wrap = false;
 
-    public function __construct(public $resource, public ?string $message = null, private readonly int $statusCode = ResponseAlias::HTTP_OK) {
+    public function __construct(public $resource=null, public ?string $message = null, private readonly int $statusCode = ResponseAlias::HTTP_OK) {
         parent::__construct($resource);
     }
 

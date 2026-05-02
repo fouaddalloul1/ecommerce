@@ -2,7 +2,7 @@
 
 namespace Modules\Order\Repositories;
 
-use Exception;
+use Illuminate\Support\Facades\Log;
 use Modules\Order\Models\Order;
 use Modules\Order\Models\OrderItem;
 use Modules\Product\Models\Product;
@@ -10,43 +10,38 @@ use Modules\Order\Data\CreateOrderData;
 use Illuminate\Support\Facades\DB;
 use Modules\Order\Enums\OrderStatus;
 use Modules\Order\Enums\PaymentStatus;
-use Modules\Product\Repositories\ProductRepository;
+use Modules\Order\Jobs\SendInvoiceJob;
+use Modules\Order\Jobs\SendNotificationJob;
+
 
 class OrderRepository
 {
-    public function __construct(
-        protected ProductRepository $productRepository
-    ) {}
-
     public function create(CreateOrderData $data): Order
     {
         return DB::transaction(function () use ($data) {
             $total = 0;
             $itemsPayload = [];
-
+            // Log::info('Order started at: ' . now());
             // Get all product ids once (outside loop)
             $productIds = collect($data->items)
                 ->pluck('product_id')
                 ->unique()
                 ->values()
                 ->toArray();
-
             // Single query + lock rows
             $products = Product::query()
                 ->whereIn('id', $productIds)
                 ->lockForUpdate()
                 ->get()
                 ->keyBy('id');
-
+            // sleep(10);
             foreach ($data->items as $item) {
                 $product = $products->get($item['product_id']);
-
                 if (! $product) {
                     throw new \Exception(
                         "Product {$item['product_id']} not found."
                     );
                 }
-
                 // This belongs here (repository/domain logic)
                 if ($product->stock < $item['quantity']) {
                     throw new \Exception(
@@ -70,6 +65,9 @@ class OrderRepository
                 'payment_status' => PaymentStatus::UNPAID->value,
             ]);
 
+            SendInvoiceJob::dispatch($order->id)->onQueue('invoices');
+            SendNotificationJob::dispatch($order->id)->onQueue('notifications');
+
             foreach ($itemsPayload as $item) {
                 OrderItem::create([
                     'order_id' => $order->id,
@@ -84,7 +82,7 @@ class OrderRepository
             }
 
             return $order->load('items');
-        });
+        }, 5);
     }
 
 
