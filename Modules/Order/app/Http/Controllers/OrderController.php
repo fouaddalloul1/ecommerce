@@ -36,9 +36,7 @@ class OrderController extends Controller
      *                     @OA\Property(property="quantity", type="integer", example=2)
      *                 )
      *             ),
-     *
-     *             @OA\Property(property="shipping", type="number", example=10),
-     *             @OA\Property(property="currency", type="string", example="USD")
+     
      *         )
      *     ),
      *
@@ -68,10 +66,10 @@ class OrderController extends Controller
     public function create(StoreOrderRequest $request): MainResource
     {
         $data = CreateOrderData::from(array_merge($request->validated(), ['user_id' => auth()->id()]));
+       
         $this->repository->create($data);
 
-        // return MainResource::make(new OrderResource($order), 'Order created', ResponseAlias::HTTP_CREATED);
-        return MainResource::make();
+        return MainResource::make(null);
     }
 
     public function show(int $id): MainResource

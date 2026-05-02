@@ -1,48 +1,50 @@
 <?php
+
 namespace Modules\Order\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Modules\Order\Repositories\OrderRepository;
-use Modules\Product\Models\Product;
-use Modules\User\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class OrderDatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        if (User::count() === 0) {
-            User::factory()->count(5)->create();
-        }
+        $users = DB::table('users')->pluck('id');
+        $products = DB::table('products')->get();
 
-        $repo = app(OrderRepository::class);
-        $users = User::inRandomOrder()->take(5)->get();
+        foreach ($users as $userId) {
 
-        foreach ($users as $user) {
-            $availableProducts = Product::where('stock', '>', 0)->inRandomOrder()->take(3)->get();
-            if ($availableProducts->isEmpty()) continue;
+            $orderId = DB::table('orders')->insertGetId([
+                'user_id' => $userId,
+                'total' => 0,
+                'status' => 'pending',
+                'payment_status' => 'unpaid',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
 
-            $items = [];
-            foreach ($availableProducts as $p) {
-                $qty = min(2, max(1, (int)($p->stock > 0 ? 1 : 0)));
-                $items[] = ['product_id' => $p->id, 'quantity' => $qty];
+            $total = 0;
+
+            $selectedProducts = $products->random(2);
+
+            foreach ($selectedProducts as $product) {
+
+                $qty = rand(1, 3);
+                $lineTotal = $product->price * $qty;
+                $total += $lineTotal;
+
+                DB::table('order_items')->insert([
+                    'order_id' => $orderId,
+                    'product_id' => $product->id,
+                    'quantity' => $qty,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
             }
 
-            $payload = [
-                'user_id' => $user->id,
-                'items' => $items,
-                'shipping' => 5.00,
-                'currency' => 'USD',
-                'shipping_address' => ['line1' => 'Seeder St', 'city' => 'Seeder City'],
-                'billing_address' => ['line1' => 'Seeder St', 'city' => 'Seeder City'],
-            ];
-
-            try {
-                $repo->create(\Modules\Order\Data\CreateOrderData::from($payload));
-            } catch (\Exception $e) {
-                continue;
-            }
+            DB::table('orders')
+                ->where('id', $orderId)
+                ->update(['total' => $total]);
         }
     }
 }
-
-

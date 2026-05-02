@@ -3,22 +3,29 @@
 namespace Modules\Product\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Modules\Product\Models\Product;
-use Modules\Category\Models\Category;
+use Illuminate\Support\Facades\DB;
 
 class ProductDatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        if (Category::count() === 0) {
-            $this->call(\Modules\Category\Database\Seeders\CategoryDatabaseSeeder::class);
-        }
+        $categoryIds = DB::table('categories')->pluck('id');
 
-        \Modules\Product\Database\Factories\ProductFactory::new()->count(80)->create();
-
-        $electronics = Category::where('slug', 'electronics')->first();
-        if ($electronics) {
-            \Modules\Product\Database\Factories\ProductFactory::new()->count(5)->create(['category_id' => $electronics->id, 'stock' => 200]);
+        foreach ($categoryIds as $categoryId) {
+            for ($i = 1; $i <= 1000; $i++) {
+                DB::table('products')->insert([
+                    'category_id' => $categoryId,
+                    'name' => "Product {$categoryId}-{$i}",
+                    'description' => "Description for product {$i}",
+                    'price' => rand(50, 500),
+                    'stock' => rand(5, 100),
+                    'size' => ['S', 'M', 'L', null][array_rand(['S', 'M', 'L', null])],
+                    'image_url' => null,
+                    'is_active' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
     }
 }

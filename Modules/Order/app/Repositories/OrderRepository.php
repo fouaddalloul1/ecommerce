@@ -13,6 +13,7 @@ use Modules\Order\Enums\PaymentStatus;
 use Modules\Order\Jobs\SendInvoiceJob;
 use Modules\Order\Jobs\SendNotificationJob;
 
+
 class OrderRepository
 {
     public function create(CreateOrderData $data): Order
@@ -63,7 +64,7 @@ class OrderRepository
                 'status' => OrderStatus::PENDING->value,
                 'payment_status' => PaymentStatus::UNPAID->value,
             ]);
-            
+
             SendInvoiceJob::dispatch($order->id)->onQueue('invoices');
             SendNotificationJob::dispatch($order->id)->onQueue('notifications');
 
