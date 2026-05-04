@@ -8,40 +8,51 @@ use Illuminate\Support\Facades\Redis;
 
 class UpdateSystemLoad extends Command
 {
-    protected $signature = 'system:cpu-monitor';
-    protected $description = 'Store CPU load in Redis for dynamic limiting';
+    protected $signature = 'system:monitor';
+    protected $description = 'Store CPU & RAM usage in Redis';
 
     public function handle()
     {
         while (true) {
 
-            // Windows-compatible CPU usage approximation
-            $load = $this->getCpuLoad();
+            $metrics = $this->getSystemMetrics();
 
-            Log::info("CPU Load: {$load}% ");
+            Log::info('metrics : ' . json_encode($metrics));
+            
+            // store in Redis
+            Redis::set('system:cpu_load', $metrics['cpu']);
+            Redis::set('system:ram_usage', $metrics['ram']);
 
-            Redis::set('system:cpu_load', $load);
+            Log::info("CPU: {$metrics['cpu']}% | RAM: {$metrics['ram']}%");
 
-            $this->info("CPU Load Stored: {$load}%");
+            $this->info("CPU: {$metrics['cpu']}% | RAM: {$metrics['ram']}%");
 
-            sleep(2); 
+            sleep(2);
         }
     }
 
-    private function getCpuLoad(): float
+    private function getSystemMetrics(): array
     {
         if (PHP_OS_FAMILY === 'Windows') {
 
-            // PowerShell CPU usage (real and supported)
-            $cmd = 'powershell -command "Get-CimInstance Win32_Processor | Select-Object -ExpandProperty LoadPercentage"';
+            // CPU usage
+            $cpuCmd = 'powershell -command "Get-CimInstance Win32_Processor | Select-Object -ExpandProperty LoadPercentage"';
+            $cpu = (float) trim(shell_exec($cpuCmd));
 
-            $output = shell_exec($cmd);
+            // RAM usage (%)
+            $ramCmd = 'powershell -command "(Get-CimInstance Win32_OperatingSystem | ForEach-Object { ((($_.TotalVisibleMemorySize - $_.FreePhysicalMemory) * 100) / $_.TotalVisibleMemorySize) })"';
+            $ram = (float) trim(shell_exec($ramCmd));
 
-            return (float) trim($output ?? 0);
+            return [
+                'cpu' => $cpu,
+                'ram' => $ram,
+            ];
         }
 
         // Linux fallback
-        $load = sys_getloadavg();
-        return $load[0] ?? 0;
+        return [
+            'cpu' => sys_getloadavg()[0] ?? 0,
+            'ram' => memory_get_usage(true),
+        ];
     }
 }

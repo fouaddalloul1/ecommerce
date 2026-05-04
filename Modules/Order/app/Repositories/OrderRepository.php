@@ -8,6 +8,7 @@ use Modules\Order\Models\OrderItem;
 use Modules\Product\Models\Product;
 use Modules\Order\Data\CreateOrderData;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Modules\Order\Enums\OrderStatus;
 use Modules\Order\Enums\PaymentStatus;
 use Modules\Product\Repositories\ProductRepository;
@@ -18,141 +19,100 @@ class OrderRepository
         protected ProductRepository $productRepository
     ) {}
 
-    public function create(CreateOrderData $data): Order
+
+    public function create(CreateOrderData $data)
     {
         $items = $data->items;
 
-        // 1. Get product IDs
-        $productIds = collect($items)
-            ->pluck('product_id')
-            ->unique()
-            ->values()
-            ->toArray();
+        /**
+         * 1. Extract product IDs (pure PHP array, no collections)
+         */
+        $productIds = array_unique(array_column($items, 'product_id'));
 
-        // 2. Load products (single query)
-        $products = Product::query()
+        /**
+         * 2. Load products using RAW query (FAST)
+         */
+        $products = DB::table('products')
             ->whereIn('id', $productIds)
             ->get()
             ->keyBy('id');
 
         $total = 0;
         $orderItems = [];
+        $decrements = [];
 
-        // 3. Validate & calculate in memory
+        /**
+         * 3. Pure PHP loop (no model access)
+         */
         foreach ($items as $item) {
 
-            $product = $products->get($item['product_id']);
+            $product = $products[$item['product_id']] ?? null;
 
-            if (! $product) {
-                throw new \Exception("Product {$item['product_id']} not found.");
-            }
+            $qty = (int) $item['quantity'];
 
-            if ($product->stock < $item['quantity']) {
-                throw new \Exception("Product {$product->id} does not have enough stock.");
-            }
+            Log::info('product  : ', ['product' => $product]);
 
-            $total += $product->selling_price * $item['quantity'];
+            $total += $product->price * $qty;
 
             $orderItems[] = [
                 'product_id' => $product->id,
-                'quantity'   => $item['quantity'],
+                'quantity'   => $qty,
             ];
+
+            $decrements[$product->id] = ($decrements[$product->id] ?? 0) + $qty;
         }
 
-        // 4. Create order (fast single insert)
-        $order = Order::create([
+        /**
+         * 4. Insert order (RAW insert)
+         */
+        $orderId = DB::table('orders')->insertGetId([
             'user_id'        => $data->user_id,
             'total'          => $total,
             'status'         => OrderStatus::PENDING->value,
             'payment_status' => PaymentStatus::UNPAID->value,
+            'created_at'     => now(),
+            'updated_at'     => now(),
         ]);
 
-        // 5. Batch insert order items (FAST)
-        OrderItem::insert(
-            array_map(fn($item) => [
-                'order_id'   => $order->id,
+        /**
+         * 5. Batch insert order items (RAW)
+         */
+        $insertItems = [];
+
+        foreach ($orderItems as $item) {
+            $insertItems[] = [
+                'order_id'   => $orderId,
                 'product_id' => $item['product_id'],
                 'quantity'   => $item['quantity'],
-            ], $orderItems)
-        );
-
-        // 6. Batch stock update (no model hydration)
-        foreach ($orderItems as $item) {
-            Product::where('id', $item['product_id'])
-                ->decrement('stock', $item['quantity']);
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
         }
 
-        return $order->load('items');
+        DB::table('order_items')->insert($insertItems);
+
+        /**
+         * 6. Single bulk stock update (FASTEST PART)
+         */
+        $cases = [];
+        $ids = [];
+
+        foreach ($decrements as $id => $qty) {
+            $cases[] = "WHEN {$id} THEN stock - {$qty}";
+            $ids[] = $id;
+        }
+
+        $caseSql = implode(' ', $cases);
+        $idList = implode(',', $ids);
+
+        DB::statement("
+        UPDATE products
+        SET stock = CASE id {$caseSql} END
+        WHERE id IN ({$idList})
+    ");
+
+        return null;
     }
-
-    // public function create(CreateOrderData $data): Order
-    // {
-    //     return DB::transaction(function () use ($data) {
-    //         $total = 0;
-    //         $itemsPayload = [];
-
-    //         // Get all product ids once (outside loop)
-    //         $productIds = collect($data->items)
-    //             ->pluck('product_id')
-    //             ->unique()
-    //             ->values()
-    //             ->toArray();
-
-    //         // Single query + lock rows
-    //         $products = Product::query()
-    //             ->whereIn('id', $productIds)
-    //             // ->lockForUpdate()
-    //             ->get()
-    //             ->keyBy('id');
-
-    //         foreach ($data->items as $item) {
-    //             $product = $products->get($item['product_id']);
-
-    //             if (! $product) {
-    //                 throw new \Exception(
-    //                     "Product {$item['product_id']} not found."
-    //                 );
-    //             }
-
-    //             // This belongs here (repository/domain logic)
-    //             if ($product->stock < $item['quantity']) {
-    //                 throw new \Exception(
-    //                     "Product {$product->id} does not have enough stock."
-    //                 );
-    //             }
-
-    //             $lineTotal = $product->selling_price * $item['quantity'];
-    //             $total += $lineTotal;
-
-    //             $itemsPayload[] = [
-    //                 'product' => $product,
-    //                 'quantity' => $item['quantity'],
-    //             ];
-    //         }
-
-    //         $order = Order::create([
-    //             'user_id' => $data->user_id,
-    //             'total' => $total,
-    //             'status' => OrderStatus::PENDING->value,
-    //             'payment_status' => PaymentStatus::UNPAID->value,
-    //         ]);
-
-    //         foreach ($itemsPayload as $item) {
-    //             OrderItem::create([
-    //                 'order_id' => $order->id,
-    //                 'product_id' => $item['product']->id,
-    //                 'quantity' => $item['quantity'],
-    //             ]);
-
-    //             $item['product']->decrement(
-    //                 'stock',
-    //                 $item['quantity']
-    //             );
-    //         }
-
-    //         return $order->load('items');
-    //     });
-    // }
 
 
     public function find(int $id): Order

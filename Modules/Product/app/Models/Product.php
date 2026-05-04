@@ -1,4 +1,5 @@
 <?php
+
 namespace Modules\Product\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,7 @@ class Product extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'selling_price' => 'decimal:2',
+        'price' => 'decimal:2',
         'stock' => 'integer',
         'is_active' => 'boolean',
         'version' => 'integer',

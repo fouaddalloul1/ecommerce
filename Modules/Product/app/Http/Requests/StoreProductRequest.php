@@ -1,4 +1,5 @@
 <?php
+
 namespace Modules\Product\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
@@ -20,11 +21,14 @@ class StoreProductRequest extends FormRequest
             'category_id' => 'required|integer|exists:categories,id',
             'name' => 'required|string|max:191',
             'sku' => [
-                'sometimes','nullable','string','max:191',
-                Rule::unique('products','sku')->ignore($productId),
+                'sometimes',
+                'nullable',
+                'string',
+                'max:191',
+                Rule::unique('products', 'sku')->ignore($productId),
             ],
             'description' => 'sometimes|string|nullable',
-            'selling_price' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0',
             'stock' => 'sometimes|integer|min:0',
             'color' => 'sometimes|string|nullable',
             'size' => 'sometimes|string|nullable',

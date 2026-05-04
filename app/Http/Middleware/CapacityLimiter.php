@@ -16,20 +16,45 @@ class CapacityLimiter
          * Read CPU load from Redis (updated every 2 sec)
          */
         $cpu = (float) Redis::get('system:cpu_load') ?? 0;
-
-        Log::info('current cpu load : ' . $cpu . '%');
+        $ram = (float) Redis::get('system:ram_usage') ?? 0;
 
         /**
-         * Dynamic limit based on system load
+         * 1. CPU-based concurrency (non-linear but safe)
+         * Instead of 0.4 → use adaptive curve
          */
-        $limit = match (true) {
-            $cpu < 30 => 30,
-            $cpu < 60 => 20,
-            $cpu < 80 => 10,
-            default   => 5,
-        };
+        $cpuCapacity = intval(
+            (100 - $cpu) * (1 - ($cpu / 200))
+        );
+    
 
-        Log::info('capacity limit : ' . $limit);
+        /**
+         * 2. RAM-based capacity
+         */
+        $ramCapacity = intval(
+            (100 - $ram) * 0.6
+        );
+
+        /**
+         * 3. PHP-FPM limit (VERY IMPORTANT)
+         */
+        $phpFpmCapacity = 20; // match pm.max_children
+
+        /**
+         * 4. DB constraint (VERY IMPORTANT)
+         */
+        $dbCapacity = 25;
+
+        /**
+         * FINAL LIMIT = bottleneck wins
+         */
+        $limit = max(5, min(
+            $cpuCapacity,
+            $ramCapacity,
+            $phpFpmCapacity,
+            $dbCapacity
+        ));
+
+        Log::info("Dynamic capacity limit: {$limit}");
 
         $ttl = 30;
 
