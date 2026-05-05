@@ -18,7 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'capacity' => \App\Http\Middleware\CapacityLimiter::class,
-
+            'logJobMetrics' => \App\Jobs\Middleware\LogJobMetrics::class
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
