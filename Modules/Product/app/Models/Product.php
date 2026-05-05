@@ -11,10 +11,9 @@ class Product extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'selling_price' => 'decimal:2',
+        'price' => 'decimal:2',
         'stock' => 'integer',
         'is_active' => 'boolean',
-        'version' => 'integer',
     ];
 
     public function category(): BelongsTo
