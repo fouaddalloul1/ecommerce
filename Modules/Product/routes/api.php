@@ -5,13 +5,16 @@ use Modules\Product\Http\Controllers\ProductController;
 
 Route::prefix('v1')
     ->middleware('auth:sanctum')
-    ->controller(OrderController::class)
+    ->controller(ProductController::class)
     ->group(function () {
-        Route::get('products', [ProductController::class, 'index']);
-        Route::get('products/{id}', [ProductController::class, 'show']);
-        Route::get('categories/{categoryId}/products', [ProductController::class, 'byCategoryId']);
-        Route::get('categories/slug/{slug}/products', [ProductController::class, 'byCategorySlug']);
-        Route::post('products', [ProductController::class, 'store']);
-        Route::put('products/{id}', [ProductController::class, 'update']);
-        Route::delete('products/{id}', [ProductController::class, 'destroy']);
+
+        Route::get('products', 'index');
+        Route::get('products/{id}', 'show');
+
+        Route::get('categories/{categoryId}/products', 'byCategoryId');
+        Route::get('categories/slug/{slug}/products', 'byCategorySlug');
+
+        Route::post('products', 'store');
+        Route::put('products/{id}', 'update');
+        Route::delete('products/{id}', 'destroy');
     });
