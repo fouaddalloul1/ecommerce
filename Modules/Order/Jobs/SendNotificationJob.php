@@ -8,6 +8,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Modules\Order\Models\Order;
 use Modules\Order\Notifications\OrderPlaced;
+use App\Jobs\Middleware\LogJobMetrics;
 use Illuminate\Support\Facades\Notification;
 
 class SendNotificationJob implements ShouldQueue
@@ -23,10 +24,15 @@ class SendNotificationJob implements ShouldQueue
         $this->orderId = $orderId;
     }
 
+        public function middleware()
+    {
+        return [
+            new LogJobMetrics(),
+        ];
+    }
     public function handle()
     {
         $order = Order::with('user')->find($this->orderId);
-        return true;
         if (! $order || ! $order->user) {
             return;
         }
