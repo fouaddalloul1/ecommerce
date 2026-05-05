@@ -2,12 +2,12 @@
 
 namespace Modules\Product\Data;
 
+use Modules\Product\Models\Product;
 use Spatie\LaravelData\Data;
 
-class IndexProductData extends Data
+class ShowProductData extends Data
 {
     public function __construct(
-        public ?string $q,
-        public int $category_id,
+        public Product $product,
     ) {}
 }

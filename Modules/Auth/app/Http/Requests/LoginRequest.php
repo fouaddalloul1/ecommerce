@@ -26,6 +26,7 @@ class LoginRequest extends FormRequest
             'password' => 'required|string',
         ];
     }
+    
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {

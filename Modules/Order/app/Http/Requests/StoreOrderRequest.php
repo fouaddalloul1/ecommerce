@@ -25,7 +25,7 @@ class StoreOrderRequest extends FormRequest
 
     public function withValidator($validator): void
     {
-        $validator->after(function (Validator $validator) {
+        $validator->after(function ($validator) {
             $items = $this->input('items');
 
 
