@@ -8,12 +8,24 @@ const success200 = new Counter('success_200');
 const rejected429 = new Counter('rejected_429');
 const failedOther = new Counter('failed_other');
 
+/**
+ *     stages: [
+        { duration: '30s', target: 20 },  // رفع تدريجي لـ 20 مستخدم
+        { duration: '1m', target: 50 },   // 50 مستخدم مؤقت
+        { duration: '30s', target: 0 },   // خفض
+    ],
+ */
 export const options = {
     stages: [
         { duration: '10s', target: 40 },//40 users looping requests for 10 seconds
         { duration: '10s', target: 50 },
         { duration: '5s', target: 0 },
     ],
+
+
+        thresholds: {
+        http_req_duration: ['p(95)<1500'], // 95% من الطلبات أقل من 1 ثانية
+    },
 };
 
 export default function () {
@@ -31,7 +43,7 @@ export default function () {
     const params = {
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer oiU1NCQ0Suoz21yl3Vn3q4PHilMatdson2PDIaksfbb1c32a',
+            'Authorization': 'Bearer Ewk2KsARA0o4CJMeXNCamhAOPpSCZJ9CNO9j63Z774b9d1f0',
             'Accept': 'application/json',
         },
     };
