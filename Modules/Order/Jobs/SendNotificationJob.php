@@ -6,6 +6,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 use Modules\Order\Models\Order;
 use Modules\Order\Notifications\OrderPlaced;
 use Illuminate\Support\Facades\Notification;
@@ -26,6 +27,8 @@ class SendNotificationJob implements ShouldQueue
 
     public function handle()
     {
+        // sleep(2);  // ← أضف هذا السطر
+        // Log::info('🔥 Invoice job executed at: ' . now());
         $order = Order::with('user')->find($this->orderId);
         if (! $order || ! $order->user) {
             return;

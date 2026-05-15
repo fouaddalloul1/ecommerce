@@ -65,8 +65,11 @@ class OrderRepository
                 'payment_status' => PaymentStatus::UNPAID->value,
             ]);
 
-            SendInvoiceJob::dispatch($order->id)->onQueue('invoices')->afterCommit();
-            SendNotificationJob::dispatch($order->id)->onQueue('notifications')->afterCommit();
+            // SendInvoiceJob::dispatch($order->id)->onQueue('invoices')->afterCommit();
+            // SendNotificationJob::dispatch($order->id)->onQueue('notifications')->afterCommit();
+
+            SendInvoiceJob::dispatch($order->id)->onQueue('invoices');
+            SendNotificationJob::dispatch($order->id)->onQueue('notifications');
 
             foreach ($itemsPayload as $item) {
                 OrderItem::create([

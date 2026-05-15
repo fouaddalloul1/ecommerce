@@ -2,12 +2,12 @@
 // php artisan queue:work redis --queue=default --tries=3 --timeout=120 --sleep=3
 namespace Modules\Order\Jobs;
 
-// use App\Http\Middleware\LogJobMetrics;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class SendInvoiceJob implements ShouldQueue
 {
@@ -20,12 +20,7 @@ class SendInvoiceJob implements ShouldQueue
     {
         $this->orderId = $orderId;
     }
-    // public function middleware()
-    // {
-    //     return [
-    //         new LogJobMetrics(),
-    //     ];
-    // }
+
     /**
      * Method injection keeps the job class small and makes services mockable in tests.
      */
@@ -36,6 +31,9 @@ class SendInvoiceJob implements ShouldQueue
         \Modules\Order\Services\InvoiceRecordService $recorder,
         \Modules\Order\Services\InvoiceMailerService $mailer
     ): void {
+        // Log::info('🔥🔥🔥 INVOICE JOB STARTED at: ' . now());
+        // sleep(5);  // ← أضف هذا السطر
+        // Log::info('🔥 Invoice job executed at: ' . now());
         $order = $fetcher->fetchWithRelations($this->orderId);
         if (! $order) {
             // nothing to do

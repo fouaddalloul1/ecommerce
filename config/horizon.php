@@ -161,7 +161,7 @@ return [
                 'connection' => 'redis',
                 'queue' => ['invoices'],
                 'balance' => 'simple',
-                'processes' => 5,           // 🔁 غيّر هذا الرقم إلى (1, 3, 5) لكل اختبار
+                'processes' => 1,           // 🔁 غيّر هذا الرقم إلى (1, 3, 5) لكل اختبار
                 'tries' => 3,
                 'timeout' => 600,
             ],
@@ -171,7 +171,7 @@ return [
                 'connection' => 'redis',
                 'queue' => ['notifications'],
                 'balance' => 'simple',
-                'processes' => 5,           // 🔁 غيّر هذا الرقم أيضاً للتجربة
+                'processes' => 1,           // 🔁 غيّر هذا الرقم أيضاً للتجربة
                 'tries' => 3,
                 'timeout' => 60,
             ],
