@@ -9,7 +9,12 @@ use Illuminate\Auth\AuthenticationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
+
+use App\Support\Pulse\System;
+use Laravel\Pulse\Facades\Pulse;
+
 return Application::configure(basePath: dirname(__DIR__))
+
 
     ->withRouting(
         web: [
@@ -21,7 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'capacity' => \App\Http\Middleware\CapacityLimiter::class,
-            'logJobMetrics' => \App\Jobs\Middleware\LogJobMetrics::class
+            // 'logJobMetrics' => \App\Jobs\Middleware\LogJobMetrics::class
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -74,3 +79,5 @@ return Application::configure(basePath: dirname(__DIR__))
         });
     })
     ->create();
+
+Pulse::useSystem(System::class);
