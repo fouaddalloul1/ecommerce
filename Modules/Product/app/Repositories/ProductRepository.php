@@ -9,6 +9,8 @@ use Modules\Product\Models\Product;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Modules\Category\Models\Category;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Modules\Product\Data\DecreaseProductStockData;
 use Modules\Product\Data\ShowProductData;
 use Modules\Product\Data\StoreProductData;
 use Modules\Product\Data\UpdateProductData;
@@ -80,7 +82,10 @@ class ProductRepository
             'image_url'   => $data->image_url,
             'is_active'   => $data->is_active,
             'category_id' => $data->category_id,
+            'stock' => $data->stock,
         ];
+
+        Log::info('Updating product with fields: ', $fields);
 
         $fields = array_filter($fields, fn($value) => !is_null($value));
 
@@ -89,11 +94,35 @@ class ProductRepository
         return null;
     }
 
+    public function decreaseStock(
+        DecreaseProductStockData $data
+    ) {
+
+        return DB::transaction(function () use ($data) {
+
+            $product = Product::lockForUpdate()
+                ->find($data->product->id);
+
+            if ($product->stock < $data->quantity) {
+                throw new \Exception('Insufficient stock');
+            }
+
+            // simulate delay
+            sleep(1);
+
+            $product->stock -= $data->quantity;
+
+            $product->save();
+
+            return $product;
+        });
+    }
 
     public function delete(Product $product): void
     {
         $product->delete();
     }
+
     public function adjustStock(int $productId, int $delta, string $reason, ?int $referenceId = null): void
     {
         DB::transaction(function () use ($productId, $delta, $reason, $referenceId) {
