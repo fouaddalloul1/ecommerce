@@ -43,7 +43,7 @@ export default function () {
     const params = {
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer kW7vpntdzGKfyTzHhqZjNw7bMfYOaq6z8MgD3ZNDb4bb8e74',
+            'Authorization': 'Bearer uRv2QhykTkwBRzvEduSVOW91oDwY1NaAjSvfFjd1d1c07d5b',
             'Accept': 'application/json',
         },
     };

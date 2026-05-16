@@ -171,7 +171,7 @@ return [
                 'connection' => 'redis',
                 'queue' => ['notifications'],
                 'balance' => 'simple',
-                'processes' => 1,           // 🔁 غيّر هذا الرقم أيضاً للتجربة
+                'processes' => 2,           // 🔁 غيّر هذا الرقم أيضاً للتجربة
                 'tries' => 3,
                 'timeout' => 60,
             ],

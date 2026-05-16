@@ -7,14 +7,22 @@ const totalRequests = new Counter('total_requests');
 const success200 = new Counter('success_200');
 const rejected429 = new Counter('rejected_429');
 const failedOther = new Counter('failed_other');
-
+/**
+    stages: [
+        { duration: '5s', target: 25 },   // رفع تدريجي لـ 5 مستخدمين
+        { duration: '15s', target: 50 }, // ذروة خفيفة (10 مستخدمين)
+        { duration: '15s', target: 60 }, // ذروة خفيفة (10 مستخدمين)
+        { duration: '10s', target: 50 }, // ذروة خفيفة (10 مستخدمين)
+        { duration: '5s', target: 0 },   // خفض تدريجي
+    ],
+ */
 export const options = {
     stages: [
-        { duration: '15s', target: 20 },   // رفع تدريجي لـ 20 مستخدم
-        { duration: '30s', target: 50 },   // 50 مستخدم لمدة 30 ثانية
-        { duration: '15s', target: 80 },   // رفع لـ 80 مستخدم (ذروة)
-        { duration: '30s', target: 80 },   // ثبات عند الذروة
-        { duration: '15s', target: 0 },    // خفض تدريجي
+        { duration: '5s', target: 25 },   // رفع تدريجي لـ 5 مستخدمين
+        { duration: '15s', target: 45 }, // ذروة خفيفة (10 مستخدمين)
+        { duration: '10s', target: 50 }, // ذروة خفيفة (10 مستخدمين)
+        { duration: '10s', target: 35 }, // ذروة خفيفة (10 مستخدمين)
+        { duration: '10s', target: 0 },   // خفض تدريجي
     ],
     thresholds: {
         http_req_duration: ['p(95)<1000'], // 95% من الطلبات أقل من 1 ثانية
@@ -37,7 +45,7 @@ export default function () {
     const params = {
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer Ewk2KsARA0o4CJMeXNCamhAOPpSCZJ9CNO9j63Z774b9d1f0',
+            'Authorization': 'Bearer nOvW2Z2EPt1QSpR6JtQJE9h73bQxWxR1zxlJahvpd165e579',
             'Accept': 'application/json',
         },
     };
