@@ -13,7 +13,8 @@ return [
     |
     */
 
-    'default' => env('QUEUE_CONNECTION', 'database'),
+    // 'default' => env('QUEUE_CONNECTION', 'sync'), / redis
+    'default' => env('QUEUE_CONNECTION', PHP_OS_FAMILY === 'Windows' ? 'database' : 'sync'),
 
     /*
     |--------------------------------------------------------------------------

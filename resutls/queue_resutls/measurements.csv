@@ -1,0 +1,7 @@
+timestamp,stage,cpu_percent,ram_mb,ram_percent,horizon_workers
+17:23:30,BEFORE_sync_2_3,5.1,5704,73.32,7
+17:23:40,DURING_sync_2_3,51.6,6626,85.17,7
+17:25:26,AFTER_sync_2_3,65.9,6406,82.34,7
+17:33:19,BEFORE_async_3_6,3.0,5938,76.33,11
+17:33:29,DURING_async_3_6,24.7,6863,88.22,11
+17:35:26,AFTER_async_3_6,31.2,6404,82.32,11

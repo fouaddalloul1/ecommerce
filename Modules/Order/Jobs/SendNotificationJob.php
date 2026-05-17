@@ -6,9 +6,9 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 use Modules\Order\Models\Order;
 use Modules\Order\Notifications\OrderPlaced;
-use App\Jobs\Middleware\LogJobMetrics;
 use Illuminate\Support\Facades\Notification;
 
 class SendNotificationJob implements ShouldQueue
@@ -24,14 +24,11 @@ class SendNotificationJob implements ShouldQueue
         $this->orderId = $orderId;
     }
 
-        public function middleware()
-    {
-        return [
-            new LogJobMetrics(),
-        ];
-    }
+
     public function handle()
     {
+        // sleep(2);  // ← أضف هذا السطر
+        // Log::info('🔥 Invoice job executed at: ' . now());
         $order = Order::with('user')->find($this->orderId);
         if (! $order || ! $order->user) {
             return;

@@ -10,6 +10,7 @@ use Modules\Order\Data\CreateOrderData;
 use Illuminate\Support\Facades\DB;
 use Modules\Order\Enums\OrderStatus;
 use Modules\Order\Enums\PaymentStatus;
+use Modules\Order\Jobs\GeneratePdfJob;
 use Modules\Order\Jobs\SendInvoiceJob;
 use Modules\Order\Jobs\SendNotificationJob;
 
@@ -65,8 +66,13 @@ class OrderRepository
                 'payment_status' => PaymentStatus::UNPAID->value,
             ]);
 
-            SendInvoiceJob::dispatch($order->id)->onQueue('invoices')->afterCommit();
+            //// SendInvoiceJob::dispatch($order->id)->onQueue('invoices')->afterCommit();
+            GeneratePdfJob::dispatch($order->id)->onQueue('invoices')->afterCommit();
             SendNotificationJob::dispatch($order->id)->onQueue('notifications')->afterCommit();
+
+            ////SendInvoiceJob::dispatch($order->id)->onQueue('invoices');
+            //GeneratePdfJob::dispatch($order->id)->onQueue('invoices');
+            //SendNotificationJob::dispatch($order->id)->onQueue('notifications');
 
             foreach ($itemsPayload as $item) {
                 OrderItem::create([

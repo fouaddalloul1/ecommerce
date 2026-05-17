@@ -23,6 +23,13 @@ function detectStage() {
     return 'STAGE_5';
 }
 
+/**
+ *     stages: [
+        { duration: '30s', target: 20 },  // رفع تدريجي لـ 20 مستخدم
+        { duration: '1m', target: 50 },   // 50 مستخدم مؤقت
+        { duration: '30s', target: 0 },   // خفض
+    ],
+ */
 export const options = {
     stages: [
         { duration: '1m', target: 20 },
@@ -40,6 +47,11 @@ export const options = {
         { duration: '1m', target: 100 },
         { duration: '20s', target: 0 },
     ],
+
+
+    thresholds: {
+        http_req_duration: ['p(95)<1500'], // 95% من الطلبات أقل من 1 ثانية
+    },
 };
 
 export default function () {
@@ -60,15 +72,18 @@ export default function () {
         lastStage = stage;
     }
 
-    const res = http.post('http://127.0.0.1:8000/api/v1/orders',
-        JSON.stringify({ items: [{ product_id: 1, quantity: 1 }] }),
-        {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer 5|aGWx2y3Kw1TdocUVIPCZ5YeFDKsRoNEV0L4rQ3p96b540e4d',
-            },
-        }
-    );
+    const res =
+        //http.post('http://127.0.0.1:8000/api/v1/orders',
+        http.post(`http://ecommerce.local/api/v1/orders`,
+
+            JSON.stringify({ items: [{ product_id: 1, quantity: 1 }] }),
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer 5|aGWx2y3Kw1TdocUVIPCZ5YeFDKsRoNEV0L4rQ3p96b540e4d',
+                },
+            }
+        );
 
     check(res, {
         'valid response': (r) => r.status === 200 || r.status === 429,

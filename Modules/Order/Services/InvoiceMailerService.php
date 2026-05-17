@@ -24,7 +24,9 @@ class InvoiceMailerService
      */
     public function sendInvoice(Order $order, string $relativePath): void
     {
+        //throw new \Exception('Simulated email failure');
         try {
+
             $absolute = $this->storage->getAbsolutePath($relativePath);
 
             if (! file_exists($absolute)) {
