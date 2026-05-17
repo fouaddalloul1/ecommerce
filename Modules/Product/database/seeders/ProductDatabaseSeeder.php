@@ -12,7 +12,7 @@ class ProductDatabaseSeeder extends Seeder
         $categoryIds = DB::table('categories')->pluck('id');
 
         foreach ($categoryIds as $categoryId) {
-            for ($i = 1; $i <= 1000; $i++) {
+            for ($i = 1; $i <= 10; $i++) {
                 DB::table('products')->insert([
                     'category_id' => $categoryId,
                     'name' => "Product {$categoryId}-{$i}",

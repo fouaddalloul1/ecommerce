@@ -15,6 +15,7 @@ Route::prefix('v1')
         Route::get('categories/slug/{slug}/products', 'byCategorySlug');
 
         Route::post('products', 'store');
-        Route::put('products/{id}', 'update');
+        Route::put('products/update/{id}', 'update');
         Route::delete('products/{id}', 'destroy');
+        Route::put('products/decrease-stock/{id}', 'decreaseStock');
     });

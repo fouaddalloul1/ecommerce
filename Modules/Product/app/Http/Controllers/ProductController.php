@@ -4,6 +4,7 @@ namespace Modules\Product\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\MainResource;
+use Modules\Product\Data\DecreaseProductStockData;
 use Modules\Product\Data\DestroyProductData;
 use Modules\Product\Http\Requests\IndexProductRequest;
 use Modules\Product\Http\Requests\StoreProductRequest;
@@ -11,6 +12,7 @@ use Modules\Product\Data\IndexProductData;
 use Modules\Product\Data\ShowProductData;
 use Modules\Product\Data\StoreProductData;
 use Modules\Product\Data\UpdateProductData;
+use Modules\Product\Http\Requests\DecreaseProductStockRequest;
 use Modules\Product\Http\Requests\DestroyProductRequest;
 use Modules\Product\Http\Requests\ShowProductRequest;
 use Modules\Product\Http\Requests\UpdateProductRequest;
@@ -272,6 +274,65 @@ class ProductController extends Controller
         return MainResource::make(new ProductResource($product), 'Product updated');
     }
 
+
+    /**
+     * @OA\Put(
+     *     path="/api/v1/products/decrease-stock/{id}",
+     *     tags={"Products"},
+     *     summary="Decrease product stock",
+     *     security={{"sanctum":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Product ID",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"quantity"},
+     *             @OA\Property(
+     *                 property="quantity",
+     *                 type="integer",
+     *                 example=2
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Stock updated successfully"
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error"
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Product not found"
+     *     )
+     * )
+     */
+    public function decreaseStock(
+        DecreaseProductStockRequest $request
+    ): MainResource {
+
+        $data = DecreaseProductStockData::from(
+            $request->validated()
+        );
+
+        $product = $this->repository->decreaseStock($data);
+
+        return MainResource::make(
+            new ProductResource($product),
+            'Stock decreased successfully'
+        );
+    }
 
     /**
      * @OA\Delete(

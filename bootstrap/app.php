@@ -26,14 +26,26 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'capacity' => \App\Http\Middleware\CapacityLimiter::class,
+            'auth' => \App\Http\Middleware\Authenticate::class,
+            // 'logJobMetrics' => \App\Jobs\Middleware\LogJobMetrics::class
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // 401 - Unauthenticated
         $exceptions->render(function (AuthenticationException $e, Request $request) {
-            if ($request->expectsJson() || $request->is('api/*')) {
-                return MainResource::make(null, 'Unauthenticated.', 401);
+
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return MainResource::make(
+                    null,
+                    'Unauthenticated.',
+                    401
+                );
             }
+
+            // 🚨 IMPORTANT: prevent Laravel redirect attempt
+            return response()->json([
+                'message' => 'Unauthenticated.'
+            ], 401);
         });
 
         // 404 - Model or route not found

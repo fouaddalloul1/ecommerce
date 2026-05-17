@@ -22,6 +22,7 @@ class UpdateProductRequest extends FormRequest
             'image_url'   => ['sometimes', 'string', 'nullable'],
             'is_active'   => ['sometimes', 'boolean'],
             'category_id' => ['sometimes', 'integer'],
+            'stock' => ['sometimes', 'integer'],
         ];
     }
 

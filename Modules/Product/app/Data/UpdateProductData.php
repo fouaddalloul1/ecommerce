@@ -10,6 +10,7 @@ class UpdateProductData extends Data
     public function __construct(
         public Product $product,
         public ?string $name,
+        public ?int $stock,
         public ?string $description,
         public ?float $price,
         public ?string $size,
