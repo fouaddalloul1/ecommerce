@@ -79,6 +79,13 @@ function detectStage() {
     return 'STAGE_5';
 }
 
+/**
+ *     stages: [
+        { duration: '30s', target: 20 },  // رفع تدريجي لـ 20 مستخدم
+        { duration: '1m', target: 50 },   // 50 مستخدم مؤقت
+        { duration: '30s', target: 0 },   // خفض
+    ],
+ */
 export const options = {
     stages: [
         { duration: '1m', target: 20 },
@@ -96,6 +103,11 @@ export const options = {
         { duration: '1m', target: 100 },
         { duration: '20s', target: 0 },
     ],
+
+
+        thresholds: {
+        http_req_duration: ['p(95)<1500'], // 95% من الطلبات أقل من 1 ثانية
+    },
 };
 
 export default function () {
