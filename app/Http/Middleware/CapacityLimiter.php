@@ -11,35 +11,23 @@ class CapacityLimiter
     {
         $key = 'active_order_requests';
 
-        /**
-         * Read CPU load from Redis (updated every 2 sec)
-         */
-        $cpu = (float) Redis::get('system:cpu_load') ?? 0;
+        $state = Redis::get('metrics:state') ?? 'LOW';
 
-        /**
-         * Dynamic limit based on system load
-         */
-        $limit = match (true) {
-            $cpu < 30 => 30,
-            $cpu < 60 => 20,
-            $cpu < 80 => 10,
-            default   => 5,
+        $limit = match ($state) {
+            'LOW' => 150,
+            'MEDIUM' => 100,
+            'HIGH' => 50,
+            default => 100
         };
 
-        $ttl = 30;
-
-        /**
-         * LUA SCRIPT (atomic execution inside Redis)
-         */
         $lua = "
             local key = KEYS[1]
             local limit = tonumber(ARGV[1])
-            local ttl = tonumber(ARGV[2])
 
             local current = redis.call('INCR', key)
 
             if current == 1 then
-                redis.call('EXPIRE', key, ttl)
+                redis.call('EXPIRE', key, 1)
             end
 
             if current > limit then
@@ -49,27 +37,16 @@ class CapacityLimiter
             return current
         ";
 
-        /**
-         * Execute atomic Redis script
-         */
-        $result = Redis::eval($lua, 1, $key, $limit, $ttl);
+        $result = Redis::eval($lua, 1, $key, $limit);
 
-        /**
-         * Reject overloaded system
-         */
         if ($result === -1) {
-            abort(429, json_encode([
+            return response()->json([
                 'message' => 'Server is busy',
-                'cpu' => $cpu,
+                'state' => $state,
                 'limit' => $limit
-            ]));
+            ], 429);
         }
 
-        try {
-            return $next($request);
-
-        } finally {
-            Redis::decr($key);
-        }
+        return $next($request);
     }
 }

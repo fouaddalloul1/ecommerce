@@ -22,9 +22,9 @@ class StartProjectCommand extends Command
         /**
          * Start CPU monitor
          */
-        $cpu = new Process(['php', 'artisan', 'system:cpu-monitor']);
-        $cpu->setTimeout(null);
-        $cpu->start();
+        // $cpu = new Process(['php', 'artisan', 'monitor:php']);
+        // $cpu->setTimeout(null);
+        // $cpu->start();
 
         $this->info('CPU monitor started');
 

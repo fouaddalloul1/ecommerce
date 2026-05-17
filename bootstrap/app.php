@@ -9,7 +9,12 @@ use Illuminate\Auth\AuthenticationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
+
+use App\Support\Pulse\System;
+use Laravel\Pulse\Facades\Pulse;
+
 return Application::configure(basePath: dirname(__DIR__))
+
 
     ->withRouting(
         web: [
@@ -73,3 +78,5 @@ return Application::configure(basePath: dirname(__DIR__))
         });
     })
     ->create();
+
+Pulse::useSystem(System::class);
