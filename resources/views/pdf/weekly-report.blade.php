@@ -108,12 +108,12 @@
                 <th>Quantity Sold</th>
             </tr>
             <tr>
-                <td><span class="badge bg-green">⭐ Top Product</span></td>
+                <td><span class="badge bg-green">Top Product</span></td>
                 <td>{{ $report->top_product_name }}</td>
                 <td>{{ number_format($report->top_product_quantity) }}</td>
             </tr>
             <tr>
-                <td><span class="badge bg-red">📉 Bottom Product</span></td>
+                <td><span class="badge bg-red">Bottom Product</span></td>
                 <td>{{ $report->bottom_product_name }}</td>
                 <td>{{ number_format($report->bottom_product_quantity) }}</td>
             </tr>
