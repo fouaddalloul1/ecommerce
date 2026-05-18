@@ -13,7 +13,7 @@ use Modules\Order\Enums\PaymentStatus;
 use Modules\Order\Jobs\GeneratePdfJob;
 use Modules\Order\Jobs\SendInvoiceJob;
 use Modules\Order\Jobs\SendNotificationJob;
-
+use Modules\User\Models\User;
 
 class OrderRepository
 {
@@ -36,6 +36,13 @@ class OrderRepository
                 ->get()
                 ->keyBy('id');
             // sleep(10);
+
+            // Get authenticated user with lock
+            $user = User::query()
+                ->where('id', auth()->id())
+                ->lockForUpdate()
+                ->first();
+
             foreach ($data->items as $item) {
                 $product = $products->get($item['product_id']);
                 if (! $product) {
@@ -50,7 +57,7 @@ class OrderRepository
                     );
                 }
 
-                $lineTotal = $product->selling_price * $item['quantity'];
+                $lineTotal = $product->price * $item['quantity'];
                 $total += $lineTotal;
 
                 $itemsPayload[] = [
@@ -59,11 +66,18 @@ class OrderRepository
                 ];
             }
 
+            // check balance
+            if ($user->balance < $total) {
+                throw new \Exception('Insufficient balance.');
+            }
+
+            // Deduct balance
+            $user->decrement('balance', $total);
             $order = Order::create([
                 'user_id' => $data->user_id,
                 'total' => $total,
                 'status' => OrderStatus::PENDING->value,
-                'payment_status' => PaymentStatus::UNPAID->value,
+                'payment_status' => PaymentStatus::PAID->value,
             ]);
 
             //// SendInvoiceJob::dispatch($order->id)->onQueue('invoices')->afterCommit();
@@ -86,6 +100,8 @@ class OrderRepository
                     $item['quantity']
                 );
             }
+
+
 
             return $order->load('items');
         }, 5);
