@@ -1,4 +1,5 @@
 <?php
+
 namespace Modules\Category\Repositories;
 
 use Modules\Category\Data\IndexCategoryData;
@@ -9,6 +10,8 @@ class CategoryRepository
 {
     public function index(IndexCategoryData $data): LengthAwarePaginator
     {
+        \Illuminate\Support\Facades\Log::info("Request handled by server port: " . $_SERVER['SERVER_PORT']);
+
         $query = Category::query();
 
         if (!is_null($data->is_active)) {

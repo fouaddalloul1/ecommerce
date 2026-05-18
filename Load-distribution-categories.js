@@ -11,12 +11,6 @@ export const options = {
 
 export default function () {
 
-    const productId = 2;
-
-    const payload = JSON.stringify({
-        quantity: 1,
-    });
-
     const params = {
         headers: {
             'Content-Type': 'application/json',
@@ -24,20 +18,19 @@ export default function () {
         },
     };
 
-    const res = http.put(
-        // `http://ecommerce.local/api/v1/products/decrease-stock/${productId}`,
-        `http://127.0.0.1:8000/api/v1/products/decrease-stock/${productId}`,
-        payload,
+    const res = http.get(
+        `http://127.0.0.1:8000/api/v1/categories`,
+        //  `http://ecommerce.local:8000/api/v1/categories`,
         params
     );
 
     check(res, {
         'status is valid': (r) =>
             r.status === 200 ||
-            r.status === 422,
+            r.status === 401, // في حال التوكين غير صالح
     });
 
     sleep(1);
 }
 
-// k6 run race-condition-products.js
+//k6 run Load-distribution-categories.js
