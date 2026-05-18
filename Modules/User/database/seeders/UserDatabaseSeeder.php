@@ -16,11 +16,11 @@ class UserDatabaseSeeder extends Seeder
                 'first_name' => "User{$i}",
                 'last_name' => "Test{$i}",
                 'email' => "user{$i}@test.com",
+                'balance' => 10000 * $i,
                 'password' => Hash::make('12345678'),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-        
         }
     }
 }

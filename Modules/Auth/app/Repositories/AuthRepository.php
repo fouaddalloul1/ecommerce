@@ -47,4 +47,17 @@ class AuthRepository
         // revoke current token
         $user->currentAccessToken()?->delete();
     }
+
+    public function me(): User
+    {
+        return User::query()
+            ->select([
+                'id',
+                'first_name',
+                'last_name',
+                'email',
+                'balance',
+            ])
+            ->findOrFail(auth()->id());
+    }
 }

@@ -9,6 +9,7 @@ use Modules\Auth\Http\Requests\LoginRequest;
 use Modules\Auth\Data\RegisterData;
 use Modules\Auth\Data\LoginData;
 use Modules\Auth\Http\Resources\AuthResource;
+use Modules\Auth\Http\Resources\UserResource;
 use Modules\Auth\Repositories\AuthRepository;
 use Symfony\Component\HttpFoundation\Response as ResponseAlias;
 use OpenApi\Annotations as OA;
@@ -187,8 +188,49 @@ class AuthController extends Controller
         return MainResource::make(null, 'Logged out');
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/v1/me",
+     *     summary="Get authenticated user",
+     *     tags={"Auth"},
+     *     security={{"sanctum":{}}},
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Authenticated user data",
+     *
+     *         @OA\JsonContent(
+     *             type="object",
+     *
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", nullable=true, example=null),
+     *
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="object",
+     *
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="first_name", type="string", example="John"),
+     *                 @OA\Property(property="last_name", type="string", example="Doe"),
+     *                 @OA\Property(property="email", type="string", example="john@example.com"),
+     *                 @OA\Property(property="balance", type="number", format="float", example=250.75)
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated"
+     *     )
+     * )
+     */
     public function me(): MainResource
     {
-        return MainResource::make(auth()->user());
+        $data = $this->repository->me();
+
+        return MainResource::make(
+            new UserResource($data),
+            null
+        );
     }
 }
