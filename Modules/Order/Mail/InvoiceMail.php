@@ -5,34 +5,26 @@ namespace Modules\Order\Mail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
-use Modules\Order\Models\Order;
+use Modules\Order\DTOs\InvoiceEmailMessage;
 
 class InvoiceMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public Order $order;
-    public string $filePath;
+    public InvoiceEmailMessage $msg;
 
-    public function __construct(Order $order, ?string $filePath = null)
+    public function __construct(InvoiceEmailMessage $msg)
     {
-        $this->order = $order;
-        $this->filePath = $filePath;
+        $this->msg = $msg;
     }
-
 
     public function build()
     {
-        $mail = $this->subject("Invoice for Order #{$this->order->id}")
-            ->view('order::emails.invoice_mail') // your mail view
-            ->with(['order' => $this->order]);
-
-        if ($this->filePath && file_exists($this->filePath)) {
-            $mail->attach($this->filePath, [
-                'as' => "invoice-{$this->order->id}.pdf",
-                'mime' => 'application/pdf',
-            ]);
-        }
-        return $mail;
+        return $this->subject("Invoice for Order #{$this->msg->order->id}")
+                    ->view('order::emails.invoice-email')
+                    ->attach($this->msg->pdfPath, [
+                        'as' => "invoice-{$this->msg->order->id}.pdf",
+                        'mime' => 'application/pdf',
+                    ]);
     }
 }

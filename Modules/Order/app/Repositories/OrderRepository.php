@@ -50,7 +50,7 @@ class OrderRepository
                     );
                 }
 
-                $lineTotal = $product->selling_price * $item['quantity'];
+                $lineTotal = $product->price * $item['quantity'];
                 $total += $lineTotal;
 
                 $itemsPayload[] = [
@@ -62,7 +62,7 @@ class OrderRepository
             $order = Order::create([
                 'user_id' => $data->user_id,
                 'total' => $total,
-                'status' => OrderStatus::PENDING->value,
+                'status' => OrderStatus::COMPLETED->value, //PENDING
                 'payment_status' => PaymentStatus::UNPAID->value,
             ]);
 
