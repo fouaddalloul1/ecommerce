@@ -76,7 +76,7 @@ class OrderRepository
             $order = Order::create([
                 'user_id' => $data->user_id,
                 'total' => $total,
-                'status' => OrderStatus::PENDING->value,
+                'status' => OrderStatus::COMPLETED->value,
                 'payment_status' => PaymentStatus::PAID->value,
             ]);
 
