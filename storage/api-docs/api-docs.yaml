@@ -1,0 +1,579 @@
+openapi: 3.0.0
+info:
+  title: 'Skenger API'
+  description: 'Skenger API'
+  version: '1.0'
+paths:
+  /api/v1/register:
+    post:
+      tags:
+        - Auth
+      summary: 'Register new user'
+      operationId: a2003a473a98c384747f4b9eab56fa6a
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - first_name
+                - last_name
+                - email
+                - password
+              properties:
+                first_name:
+                  type: string
+                  example: John
+                last_name:
+                  type: string
+                  example: Doe
+                email:
+                  type: string
+                  example: user1@test.com
+                password:
+                  type: string
+                  example: '12345678'
+                password_confirmation:
+                  type: string
+                  example: '12345678'
+              type: object
+      responses:
+        200:
+          description: 'Registered successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                    example: Registered
+                  data:
+                    properties:
+                      user:
+                        type: object
+                      token:
+                        type: string
+                        example: 1|xxxxxxxxxxxx
+                    type: object
+                type: object
+        401:
+          description: Unauthorized
+  /api/v1/login:
+    post:
+      tags:
+        - Auth
+      summary: 'Login user'
+      operationId: 2b82f9e489606cb6508bb74d3f129a77
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  example: user1@test.com
+                password:
+                  type: string
+                  example: '12345678'
+              type: object
+      responses:
+        200:
+          description: 'Logged in successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                    example: 'Logged in'
+                  data:
+                    properties:
+                      user:
+                        type: object
+                      token:
+                        type: string
+                        example: 1|xxxxxxxxxxxx
+                    type: object
+                type: object
+        401:
+          description: 'Invalid credentials'
+  /api/v1/orders:
+    post:
+      tags:
+        - Orders
+      summary: 'Create a new order'
+      operationId: 6a751f5db7a84ee9643190e8b62f86b6
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - items
+              properties:
+                items:
+                  type: array
+                  items:
+                    properties:
+                      product_id:
+                        type: integer
+                        example: 1
+                      quantity:
+                        type: integer
+                        example: 2
+                    type: object
+              type: object
+      responses:
+        201:
+          description: 'Order created successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                    example: 'Order created'
+                  data:
+                    type: object
+                type: object
+        422:
+          description: 'Validation error'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          sanctum: []
+  /api/v1/products:
+    get:
+      tags:
+        - Products
+      summary: 'List products with filters'
+      operationId: 788277f85e886260272ccc8361a1d33c
+      parameters:
+        -
+          name: q
+          in: query
+          description: 'Search by product name'
+          required: false
+          schema:
+            type: string
+            example: shirt
+        -
+          name: category_id
+          in: query
+          description: 'Filter by category ID'
+          required: false
+          schema:
+            type: integer
+            example: 3
+      responses:
+        200:
+          description: 'List of products'
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                    example: Success
+                  data:
+                    type: array
+                    items:
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        category_id:
+                          type: integer
+                          example: 3
+                        name:
+                          type: string
+                          example: 'Blue Shirt'
+                        description:
+                          type: string
+                          example: 'Cotton shirt'
+                        price:
+                          type: number
+                          example: 19.99
+                        stock:
+                          type: integer
+                          example: 50
+                        size:
+                          type: string
+                          example: L
+                        image_url:
+                          type: string
+                          example: 'https://example.com/image.jpg'
+                        is_active:
+                          type: boolean
+                          example: true
+                        created_at:
+                          type: string
+                          example: '2024-01-01 12:00:00'
+                        updated_at:
+                          type: string
+                          example: '2024-01-01 12:00:00'
+                      type: object
+                type: object
+        401:
+          description: Unauthorized
+      security:
+        -
+          sanctum: []
+    post:
+      tags:
+        - Products
+      summary: 'Create a new product'
+      operationId: 8350c2a47f5a0a5505aa04218965f875
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+                - price
+                - category_id
+              properties:
+                name:
+                  type: string
+                  example: 'Blue Shirt'
+                description:
+                  type: string
+                  example: 'Cotton shirt'
+                price:
+                  type: number
+                  example: 19.99
+                stock:
+                  type: integer
+                  example: 50
+                size:
+                  type: string
+                  example: L
+                image_url:
+                  type: string
+                  example: 'https://example.com/image.jpg'
+                is_active:
+                  type: boolean
+                  example: true
+                category_id:
+                  type: integer
+                  example: 3
+              type: object
+      responses:
+        201:
+          description: 'Product created'
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                    example: 'Product created'
+                  data:
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      name:
+                        type: string
+                        example: 'Blue Shirt'
+                      description:
+                        type: string
+                        example: 'Cotton shirt'
+                      price:
+                        type: number
+                        example: 19.99
+                      stock:
+                        type: integer
+                        example: 50
+                      size:
+                        type: string
+                        example: L
+                      image_url:
+                        type: string
+                        example: 'https://example.com/image.jpg'
+                      is_active:
+                        type: boolean
+                        example: true
+                      category_id:
+                        type: integer
+                        example: 3
+                      created_at:
+                        type: string
+                        example: '2026-05-05 13:46:52'
+                      updated_at:
+                        type: string
+                        example: '2026-05-05 13:46:52'
+                    type: object
+                type: object
+        401:
+          description: Unauthorized
+      security:
+        -
+          sanctum: []
+  '/api/v1/products/{id}':
+    get:
+      tags:
+        - Products
+      summary: 'Show product details'
+      operationId: 27ad7bf06c3ab00cbb174b5f731e35ad
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Product ID'
+          required: true
+          schema:
+            type: integer
+            example: 12
+      responses:
+        200:
+          description: 'Product details'
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                    example: Success
+                  data:
+                    properties:
+                      id:
+                        type: integer
+                        example: 12
+                      category_id:
+                        type: integer
+                        example: 3
+                      name:
+                        type: string
+                        example: 'Product Name'
+                      description:
+                        type: string
+                        example: 'Product description'
+                      price:
+                        type: number
+                        example: 199.99
+                      stock:
+                        type: integer
+                        example: 50
+                      size:
+                        type: string
+                        example: XL
+                      image_url:
+                        type: string
+                        example: 'https://example.com/image.png'
+                      is_active:
+                        type: boolean
+                        example: true
+                      created_at:
+                        type: string
+                        example: '2024-01-01 10:00:00'
+                      updated_at:
+                        type: string
+                        example: '2024-01-02 12:00:00'
+                    type: object
+                type: object
+        404:
+          description: 'Product not found'
+        401:
+          description: Unauthorized
+      security:
+        -
+          sanctum: []
+    delete:
+      tags:
+        - Products
+      summary: 'Delete a product'
+      operationId: 690875c39e492eeea3886c79026e05d1
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'ID of the product to delete'
+          required: true
+          schema:
+            type: integer
+            example: 5
+      responses:
+        204:
+          description: 'Product deleted'
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                    example: 'Product deleted'
+                  data:
+                    type: 'null'
+                    example: null
+                type: object
+        404:
+          description: 'Product not found'
+        401:
+          description: Unauthorized
+      security:
+        -
+          sanctum: []
+  '/api/v1/products/update/{id}':
+    put:
+      tags:
+        - Products
+      summary: 'Update product'
+      operationId: 7fdb9c1366b83406dbf4daa184feb145
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Product ID'
+          required: true
+          schema:
+            type: integer
+            example: 9
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                name:
+                  type: string
+                  example: 'New Product Name'
+                description:
+                  type: string
+                  example: 'Updated description'
+                price:
+                  type: number
+                  example: 199.99
+                stock:
+                  type: integer
+                  example: 50
+                size:
+                  type: string
+                  example: XL
+                image_url:
+                  type: string
+                  example: 'https://example.com/image.png'
+                is_active:
+                  type: boolean
+                  example: true
+                category_id:
+                  type: integer
+                  example: 3
+              type: object
+      responses:
+        200:
+          description: 'Product updated successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                    example: Updated
+                  data:
+                    properties:
+                      id:
+                        type: integer
+                        example: 9
+                      category_id:
+                        type: integer
+                        example: 3
+                      name:
+                        type: string
+                        example: 'New Product Name'
+                      description:
+                        type: string
+                        example: 'Updated description'
+                      price:
+                        type: number
+                        example: 199.99
+                      stock:
+                        type: integer
+                        example: 50
+                      size:
+                        type: string
+                        example: XL
+                      image_url:
+                        type: string
+                        example: 'https://example.com/image.png'
+                      is_active:
+                        type: boolean
+                        example: true
+                      created_at:
+                        type: string
+                        example: '2024-01-01 10:00:00'
+                      updated_at:
+                        type: string
+                        example: '2024-01-02 12:00:00'
+                    type: object
+                type: object
+        404:
+          description: 'Product not found'
+        401:
+          description: Unauthorized
+      security:
+        -
+          sanctum: []
+  '/api/v1/products/decrease-stock/{id}':
+    put:
+      tags:
+        - Products
+      summary: 'Decrease product stock'
+      operationId: 266501b4d2f25db54dc0fe2c4b8439c1
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Product ID'
+          required: true
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - quantity
+              properties:
+                quantity:
+                  type: integer
+                  example: 2
+              type: object
+      responses:
+        200:
+          description: 'Stock updated successfully'
+        422:
+          description: 'Validation error'
+        404:
+          description: 'Product not found'
+      security:
+        -
+          sanctum: []
+tags:
+  -
+    name: Auth
+    description: Auth
+  -
+    name: Orders
+    description: Orders
+  -
+    name: Products
+    description: Products
+components:
+  securitySchemes:
+    sanctum:
+      type: apiKey
+      description: 'Enter token as: Bearer {your_token}'
+      name: Authorization
+      in: header
+security:
+  -
+    sanctum: []

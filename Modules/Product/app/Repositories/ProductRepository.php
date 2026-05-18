@@ -98,6 +98,8 @@ class ProductRepository
         DecreaseProductStockData $data
     ) {
 
+        \Illuminate\Support\Facades\Log::info("Request handled by server port: " . $_SERVER['SERVER_PORT']);
+
         return DB::transaction(function () use ($data) {
 
             $product = Product::lockForUpdate()
