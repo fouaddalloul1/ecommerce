@@ -18,7 +18,7 @@ class ProductDatabaseSeeder extends Seeder
                     'name' => "Product {$categoryId}-{$i}",
                     'description' => "Description for product {$i}",
                     'price' => rand(50, 500),
-                    'stock' => rand(5, 100),
+                    'stock' => rand(10000, 100000),
                     'size' => ['S', 'M', 'L', null][array_rand(['S', 'M', 'L', null])],
                     'image_url' => null,
                     'is_active' => true,

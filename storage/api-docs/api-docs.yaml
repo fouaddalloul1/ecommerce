@@ -602,6 +602,76 @@ paths:
       security:
         -
           sanctum: []
+  /api/v1/products/popular:
+    get:
+      tags:
+        - Products
+      summary: 'Get popular products'
+      description: 'Returns the most popular products based on total sold quantity from order items. This endpoint is cached using Redis.'
+      operationId: a23f7a688c4f52ffa9c3701f25a69b66
+      responses:
+        200:
+          description: 'Popular products retrieved successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                    example: Success
+                  data:
+                    type: array
+                    items:
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        category_id:
+                          type: integer
+                          example: 3
+                        name:
+                          type: string
+                          example: 'Blue Shirt'
+                        description:
+                          type: string
+                          example: 'Cotton shirt'
+                        price:
+                          type: number
+                          example: 19.99
+                        stock:
+                          type: integer
+                          example: 50
+                        size:
+                          type: string
+                          example: L
+                        image_url:
+                          type: string
+                          example: 'https://example.com/image.jpg'
+                        is_active:
+                          type: boolean
+                          example: true
+                        created_at:
+                          type: string
+                          example: '2026-05-05 13:46:52'
+                        updated_at:
+                          type: string
+                          example: '2026-05-05 13:46:52'
+                        sold_quantity:
+                          type: integer
+                          example: 42
+                        orders_count:
+                          type: integer
+                          example: 15
+                        estimated_revenue:
+                          type: number
+                          example: 839.58
+                      type: object
+                type: object
+        401:
+          description: Unauthorized
+      security:
+        -
+          sanctum: []
 tags:
   -
     name: Auth

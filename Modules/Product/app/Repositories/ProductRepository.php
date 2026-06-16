@@ -15,6 +15,9 @@ use Modules\Product\Data\ShowProductData;
 use Modules\Product\Data\StoreProductData;
 use Modules\Product\Data\UpdateProductData;
 use Modules\Product\Models\StockMovement;
+use Illuminate\Database\Eloquent\Collection;
+use Modules\Order\Models\OrderItem;
+use Modules\Product\Services\PopularProductService;
 
 class ProductRepository
 {
@@ -56,7 +59,7 @@ class ProductRepository
         return $data->product;
     }
 
-    public function create(StoreProductData $data): Product
+    public function create(StoreProductData $data)
     {
         return Product::create([
             'name'        => $data->name,
@@ -68,9 +71,9 @@ class ProductRepository
             'is_active'   => $data->is_active,
             'category_id' => $data->category_id,
         ]);
+
+        return null;
     }
-
-
 
     public function update(UpdateProductData $data)
     {
@@ -85,11 +88,12 @@ class ProductRepository
             'stock' => $data->stock,
         ];
 
-        Log::info('Updating product with fields: ', $fields);
+        // Log::info('Updating product with fields: ', $fields);
 
         $fields = array_filter($fields, fn($value) => !is_null($value));
 
         $data->product->update($fields);
+
 
         return null;
     }
@@ -115,6 +119,7 @@ class ProductRepository
             $product->stock -= $data->quantity;
 
             $product->save();
+
 
             return $product;
         });
@@ -145,5 +150,40 @@ class ProductRepository
                 'reference_id' => $referenceId,
             ]);
         });
+    }
+
+    // part-2-6
+    public function popular()
+    {
+        $result = Product::query()
+            ->select([
+                'products.id',
+                'products.name',
+                'products.price',
+                'products.is_active',
+                'products.image_url',
+                'products.category_id'
+            ])
+            ->selectRaw('SUM(order_items.quantity) as sold_quantity')
+            ->selectRaw('COUNT(DISTINCT order_items.order_id) as orders_count')
+            ->selectRaw('SUM(order_items.quantity * products.price) as estimated_revenue')
+            ->join('order_items', 'products.id', '=', 'order_items.product_id')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->with('category:id,name')
+            ->where('products.is_active', true)
+            ->where('orders.status', 'completed')
+            ->where('orders.payment_status', 'paid')
+            ->groupBy(
+                'products.id',
+                'products.category_id',
+                'products.price',
+                'products.name',
+                'products.is_active',
+                'products.image_url',
+            )
+            ->orderByDesc('sold_quantity')
+            ->limit(15)->get();
+
+        return $result;
     }
 }

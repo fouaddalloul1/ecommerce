@@ -4,6 +4,7 @@ namespace Modules\Product\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\MainResource;
+use Illuminate\Support\Facades\Log;
 use Modules\Product\Data\DecreaseProductStockData;
 use Modules\Product\Data\DestroyProductData;
 use Modules\Product\Http\Requests\IndexProductRequest;
@@ -19,11 +20,17 @@ use Modules\Product\Http\Requests\UpdateProductRequest;
 use Modules\Product\Repositories\ProductRepository;
 use Modules\Product\Http\Resources\ProductResource;
 use Symfony\Component\HttpFoundation\Response as ResponseAlias;
+use Modules\Product\Http\Requests\PopularProductsRequest;
+use Modules\Product\Http\Resources\PopularProductResource;
+use Modules\Product\Services\PopularProductService;
 use OpenApi\Annotations as OA;
 
 class ProductController extends Controller
 {
-    public function __construct(private ProductRepository $repository) {}
+    public function __construct(
+        private ProductRepository $repository,
+        private PopularProductService $popularProductService
+    ) {}
 
     /** 
      * @OA\Get(
@@ -209,7 +216,6 @@ class ProductController extends Controller
             ResponseAlias::HTTP_CREATED
         );
     }
-
 
     /**
      * @OA\Put(
@@ -397,4 +403,59 @@ class ProductController extends Controller
 
         return MainResource::make(ProductResource::collection($products), null, ResponseAlias::HTTP_OK);
     }
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/products/popular",
+     *     tags={"Products"},
+     *     summary="Get popular products",
+     *     description="Returns the most popular products based on total sold quantity from order items. This endpoint is cached using Redis.",
+     *     security={{"sanctum":{}}},
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Popular products retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="category_id", type="integer", example=3),
+     *                     @OA\Property(property="name", type="string", example="Blue Shirt"),
+     *                     @OA\Property(property="description", type="string", example="Cotton shirt"),
+     *                     @OA\Property(property="price", type="number", example=19.99),
+     *                     @OA\Property(property="stock", type="integer", example=50),
+     *                     @OA\Property(property="size", type="string", example="L"),
+     *                     @OA\Property(property="image_url", type="string", example="https://example.com/image.jpg"),
+     *                     @OA\Property(property="is_active", type="boolean", example=true),
+     *                     @OA\Property(property="created_at", type="string", example="2026-05-05 13:46:52"),
+     *                     @OA\Property(property="updated_at", type="string", example="2026-05-05 13:46:52"),
+     *                     @OA\Property(property="sold_quantity", type="integer", example=42),
+     *                     @OA\Property(property="orders_count", type="integer", example=15),
+     *                     @OA\Property(property="estimated_revenue", type="number", example=839.58)
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized"
+     *     )
+     * )
+     */
+    // part-2-6
+   public function popular(): MainResource
+{
+    $products = $this->popularProductService->popular();
+
+    return MainResource::make(
+        $products,
+        null,
+        ResponseAlias::HTTP_OK
+    );
+}
 }

@@ -7,6 +7,8 @@ Route::prefix('v1')
     ->middleware('auth:sanctum')
     ->controller(ProductController::class)
     ->group(function () {
+        // part-2-6
+        Route::get('products/popular', 'popular');
 
         Route::get('products', 'index');
         Route::get('products/{id}', 'show');

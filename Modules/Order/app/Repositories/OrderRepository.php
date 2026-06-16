@@ -13,6 +13,7 @@ use Modules\Order\Enums\PaymentStatus;
 use Modules\Order\Jobs\GeneratePdfJob;
 use Modules\Order\Jobs\SendInvoiceJob;
 use Modules\Order\Jobs\SendNotificationJob;
+use Modules\Product\Services\PopularProductService;
 use Modules\User\Models\User;
 
 class OrderRepository
@@ -101,7 +102,8 @@ class OrderRepository
                 );
             }
 
-
+            // remove popular products cache 
+            PopularProductService::evictPopularProducts();
 
             return $order->load('items');
         }, 5);
@@ -146,6 +148,8 @@ class OrderRepository
             $order->status = 'cancelled';
             $order->payment_status = 'refunded';
             $order->save();
+
+            PopularProductService::evictPopularProducts();
 
             return $order;
         });
