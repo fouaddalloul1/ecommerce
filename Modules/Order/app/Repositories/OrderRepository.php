@@ -102,11 +102,11 @@ class OrderRepository
                 );
             }
 
+            
+            return $order->load('items');
+            }, 5);
             // remove popular products cache 
             PopularProductService::evictPopularProducts();
-
-            return $order->load('items');
-        }, 5);
     }
 
 

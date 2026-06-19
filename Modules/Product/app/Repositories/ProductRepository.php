@@ -128,6 +128,7 @@ class ProductRepository
     public function delete(Product $product): void
     {
         $product->delete();
+        PopularProductService::evictPopularProducts();
     }
 
     public function adjustStock(int $productId, int $delta, string $reason, ?int $referenceId = null): void

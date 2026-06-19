@@ -3,14 +3,38 @@
 namespace Modules\Product\Services;
 
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 use Modules\Product\Repositories\ProductRepository;
 
 class PopularProductService
 {
-    private const CACHE_KEY_PREFIX = 'popular_products';
-    private const CACHE_VERSION_KEY = 'popular_products_version';
-    private const CACHE_TTL_SECONDS = 600;
+    /**
+     * Fixed cache key for popular products.
+     */
+    private const CACHE_KEY = 'popular_products';
+
+    /**
+     * Distributed lock key shared between all application servers.
+     */
+    private const CACHE_LOCK_KEY = 'popular_products:rebuild_lock';
+
+    /**
+     * Cache lifetime: 2 hours.
+     */
+    private const CACHE_TTL_SECONDS = 7200;
+
+    /**
+     * Maximum lifetime of the lock.
+     *
+     * It must be longer than the maximum expected duration of:
+     * database query + data transformation + cache write.
+     */
+    private const LOCK_TTL_SECONDS = 30;
+
+    /**
+     * Maximum time other requests wait for the request
+     * that is currently rebuilding the cache.
+     */
+    private const LOCK_WAIT_SECONDS = 10;
 
     public function __construct(
         private ProductRepository $repository
@@ -18,46 +42,83 @@ class PopularProductService
 
     public function popular(): array
     {
-
-        $cacheKey = $this->cacheKey();
-
-        $cachedPayload = Cache::get($cacheKey);
+        /*
+         * First cache check.
+         *
+         * This is the normal fast path. When the cache exists,
+         * the request returns immediately without acquiring a lock.
+         */
+        $cachedPayload = Cache::get(self::CACHE_KEY);
 
         if ($cachedPayload !== null) {
-           
             return $cachedPayload;
         }
 
+        /*
+         * The cache is missing.
+         *
+         * All application servers compete for the same Redis lock.
+         * Only one request can enter the callback.
+         * The other requests wait for a maximum of
+         * LOCK_WAIT_SECONDS.
+         */
+        return Cache::lock(
+            self::CACHE_LOCK_KEY,
+            self::LOCK_TTL_SECONDS
+        )->block(
+            self::LOCK_WAIT_SECONDS,
+            function (): array {
+                /*
+                 * Second cache check.
+                 *
+                 * Another request may have created the cache while
+                 * this request was waiting for the distributed lock.
+                 */
+                $cachedPayload = Cache::get(self::CACHE_KEY);
 
-        $products = $this->repository->popular();
+                if ($cachedPayload !== null) {
+                    return $cachedPayload;
+                }
 
-        $payload = $products
-            ->map(fn ($product) => $this->transformProduct($product))
-            ->values()
-            ->all();
+                /*
+                 * Only the request that owns the distributed lock
+                 * reaches the database.
+                 */
+                $products = $this->repository->popular();
 
-        Cache::put(
-            $cacheKey,
-            $payload,
-            now()->addSeconds(self::CACHE_TTL_SECONDS)
+                $payload = $products
+                    ->map(fn ($product) => $this->transformProduct($product))
+                    ->values()
+                    ->all();
+
+                Cache::put(
+                    self::CACHE_KEY,
+                    $payload,
+                    now()->addSeconds(self::CACHE_TTL_SECONDS)
+                );
+
+                return $payload;
+            }
         );
-
-        
-
-        return $payload;
     }
 
+    /**
+     * Invalidate the popular-products cache.
+     *
+     * The same distributed lock prevents invalidation from running
+     * concurrently with cache rebuilding.
+     */
     public static function evictPopularProducts(): void
     {
-        Cache::increment(self::CACHE_VERSION_KEY);
-
-    }
-
-    private function cacheKey(): string
-    {
-        $version = Cache::get(self::CACHE_VERSION_KEY, 1);
-
-        return self::CACHE_KEY_PREFIX ;
+        Cache::lock(
+            self::CACHE_LOCK_KEY,
+            self::LOCK_TTL_SECONDS
+        )->block(
+            self::LOCK_WAIT_SECONDS,
+            function (): void {
+                Cache::forget(self::CACHE_KEY);
+            }
+        );
     }
 
     private function transformProduct($product): array
@@ -65,10 +126,13 @@ class PopularProductService
         return [
             'id' => (int) $product->id,
 
-            'category' => $product->relationLoaded('category') && $product->category ? [
-                'id' => (int) $product->category->id,
-                'name' => $product->category->name,
-            ] : null,
+            'category' => $product->relationLoaded('category')
+                && $product->category
+                    ? [
+                        'id' => (int) $product->category->id,
+                        'name' => $product->category->name,
+                    ]
+                    : null,
 
             'name' => $product->name,
             'price' => (float) $product->price,
@@ -82,5 +146,4 @@ class PopularProductService
             ],
         ];
     }
-
 }
