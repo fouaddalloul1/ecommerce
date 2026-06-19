@@ -607,7 +607,7 @@ paths:
       tags:
         - Products
       summary: 'Get popular products'
-      description: 'Returns the most popular products based on total sold quantity from order items. This endpoint is cached using Redis.'
+      description: 'Returns the most popular products based on sales statistics. Response may be served from Redis cache.'
       operationId: a23f7a688c4f52ffa9c3701f25a69b66
       responses:
         200:
@@ -616,55 +616,53 @@ paths:
             application/json:
               schema:
                 properties:
-                  message:
-                    type: string
-                    example: Success
+                  cache:
+                    description: 'Indicates whether data was returned from cache'
+                    type: boolean
+                    example: false
                   data:
                     type: array
                     items:
                       properties:
                         id:
                           type: integer
-                          example: 1
-                        category_id:
-                          type: integer
-                          example: 3
+                          example: 33
+                        category:
+                          properties:
+                            id:
+                              type: integer
+                              example: 3
+                            name:
+                              type: string
+                              example: Shoes
+                          type: object
                         name:
                           type: string
-                          example: 'Blue Shirt'
-                        description:
-                          type: string
-                          example: 'Cotton shirt'
+                          example: 'Product 3-3'
                         price:
                           type: number
-                          example: 19.99
-                        stock:
-                          type: integer
-                          example: 50
-                        size:
-                          type: string
-                          example: L
+                          format: float
+                          example: 282
                         image_url:
                           type: string
-                          example: 'https://example.com/image.jpg'
+                          example: null
+                          nullable: true
                         is_active:
                           type: boolean
                           example: true
-                        created_at:
-                          type: string
-                          example: '2026-05-05 13:46:52'
-                        updated_at:
-                          type: string
-                          example: '2026-05-05 13:46:52'
-                        sold_quantity:
-                          type: integer
-                          example: 42
-                        orders_count:
-                          type: integer
-                          example: 15
-                        estimated_revenue:
-                          type: number
-                          example: 839.58
+                        popularity:
+                          properties:
+                            sold_quantity:
+                              type: integer
+                              example: 1034
+                            orders_count:
+                              type: integer
+                              example: 500
+                            estimated_revenue:
+                              type: number
+                              format: float
+                              example: 291588
+                          type: object
                       type: object
                 type: object
         401:

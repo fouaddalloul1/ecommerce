@@ -11,12 +11,14 @@ export default function () {
     const params = {
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer 4|xvANh0rhnq5Fn4cyEOokR4XL8YOrus0YZEKWvt5Aff4b65f1',
+            'Authorization': 'Bearer 6|cKusaEHK4BQKEmftVdzDZtC4mxvoCPzXJ74i0yzs0d94305d',
         },
     };
 
     const res = http.get(
-        'http://127.0.0.1:8000/api/v1/products/popular',
+        // 'http://127.0.0.1:8000/api/v1/products/popular', //use with load balance 
+        'http://ecommerce.local:8001/api/v1/products/popular', //use without load balance
+
         params
     );
 

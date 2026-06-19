@@ -404,58 +404,112 @@ class ProductController extends Controller
         return MainResource::make(ProductResource::collection($products), null, ResponseAlias::HTTP_OK);
     }
 
-    /**
-     * @OA\Get(
-     *     path="/api/v1/products/popular",
-     *     tags={"Products"},
-     *     summary="Get popular products",
-     *     description="Returns the most popular products based on total sold quantity from order items. This endpoint is cached using Redis.",
-     *     security={{"sanctum":{}}},
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Popular products retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Success"),
-     *             @OA\Property(
-     *                 property="data",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     type="object",
-     *                     @OA\Property(property="id", type="integer", example=1),
-     *                     @OA\Property(property="category_id", type="integer", example=3),
-     *                     @OA\Property(property="name", type="string", example="Blue Shirt"),
-     *                     @OA\Property(property="description", type="string", example="Cotton shirt"),
-     *                     @OA\Property(property="price", type="number", example=19.99),
-     *                     @OA\Property(property="stock", type="integer", example=50),
-     *                     @OA\Property(property="size", type="string", example="L"),
-     *                     @OA\Property(property="image_url", type="string", example="https://example.com/image.jpg"),
-     *                     @OA\Property(property="is_active", type="boolean", example=true),
-     *                     @OA\Property(property="created_at", type="string", example="2026-05-05 13:46:52"),
-     *                     @OA\Property(property="updated_at", type="string", example="2026-05-05 13:46:52"),
-     *                     @OA\Property(property="sold_quantity", type="integer", example=42),
-     *                     @OA\Property(property="orders_count", type="integer", example=15),
-     *                     @OA\Property(property="estimated_revenue", type="number", example=839.58)
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthorized"
-     *     )
-     * )
-     */
-    // part-2-6
-   public function popular(): MainResource
-{
-    $products = $this->popularProductService->popular();
 
-    return MainResource::make(
-        $products,
-        null,
-        ResponseAlias::HTTP_OK
-    );
-}
+    /**
+
+     * @OA\Get(
+     * path="/api/v1/products/popular",
+     *tags={"Products"},  
+     *summary="Get popular products",  
+     *description="Returns the most popular products based on sales statistics. Response may be served from Redis cache.",  
+     *security={{"sanctum":{}}},  
+     * @OA\Response(
+     *    response=200,  
+     *    description="Popular products retrieved successfully",  
+     *    @OA\JsonContent(  
+     *         @OA\Property(
+     *            property="cache",  
+     *            type="boolean",  
+     *            example=false,  
+     *            description="Indicates whether data was returned from cache"  
+     *        ),  
+     *         @OA\Property(
+     *            property="data",  
+     *            type="array",  
+     *             @OA\Items(
+     *                type="object",  
+     *                 @OA\Property(
+     *                    property="id",  
+     *                    type="integer",  
+     *                    example=33  
+     *                ),  
+     *                 @OA\Property(
+     *                    property="category",  
+     *                    type="object",  
+     *                     @OA\Property(
+     *                        property="id",  
+     *                        type="integer",  
+     *                        example=3  
+     *                    ),  
+     *                     @OA\Property(
+     *                        property="name",  
+     *                        type="string",  
+     *                        example="Shoes"  
+     *                    )  
+     *                ),  
+     *                 @OA\Property(
+     *                    property="name",  
+     *                    type="string",  
+     *                    example="Product 3-3"  
+     *                ),  
+     *                 @OA\Property(
+     *                    property="price",  
+     *                    type="number",  
+     *                    format="float",  
+     *                    example=282  
+     *                ),  
+     *                 @OA\Property(
+     *                    property="image_url",  
+     *                    type="string",  
+     *                    nullable=true,  
+     *                    example=null  
+     *                ),  
+     *                 @OA\Property(
+     *                    property="is_active",  
+     *                    type="boolean",  
+     *                    example=true  
+     *                ),  
+     *                 @OA\Property(
+     *                    property="popularity",  
+     *                    type="object",  
+     *                     @OA\Property(
+     *                        property="sold_quantity",  
+     *                        type="integer",  
+     *                        example=1034  
+     *                    ),  
+     *                     @OA\Property(
+     *                        property="orders_count",  
+     *                        type="integer",  
+     *                        example=500  
+     *                    ),  
+     *                     @OA\Property(
+     *                        property="estimated_revenue",  
+     *                        type="number",  
+     *                        format="float",  
+     *                        example=291588  
+     *                    )  
+     *                )  
+     *            )  
+     *        )  
+     *    )  
+     *),  
+
+     * @OA\Response(
+ 
+     *    response=401,  
+     *    description="Unauthorized"  
+     *)  
+     *)  */
+
+    // part-2-6
+    public function popular(): MainResource
+    {
+        $products = $this->popularProductService->popular();
+
+        return MainResource::make(
+            $products,
+            null,
+            ResponseAlias::HTTP_OK
+        );
+    }
 }

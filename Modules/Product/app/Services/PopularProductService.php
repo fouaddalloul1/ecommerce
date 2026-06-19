@@ -87,7 +87,7 @@ class PopularProductService
                 $products = $this->repository->popular();
 
                 $payload = $products
-                    ->map(fn ($product) => $this->transformProduct($product))
+                    ->map(fn($product) => $this->transformProduct($product))
                     ->values()
                     ->all();
 
@@ -128,11 +128,11 @@ class PopularProductService
 
             'category' => $product->relationLoaded('category')
                 && $product->category
-                    ? [
-                        'id' => (int) $product->category->id,
-                        'name' => $product->category->name,
-                    ]
-                    : null,
+                ? [
+                    'id' => (int) $product->category->id,
+                    'name' => $product->category->name,
+                ]
+                : null,
 
             'name' => $product->name,
             'price' => (float) $product->price,
