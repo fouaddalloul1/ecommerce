@@ -147,3 +147,67 @@ class PopularProductService
         ];
     }
 }
+
+
+// without lock
+
+// namespace Modules\Product\Services;
+
+// use Illuminate\Support\Facades\Cache;
+// use Modules\Product\Repositories\ProductRepository;
+
+// class PopularProductService
+// {
+//     private const CACHE_KEY = 'popular_products';
+//     private const CACHE_TTL_SECONDS = 7200;
+
+//     public function __construct(
+//         private ProductRepository $repository
+//     ) {}
+
+//     public function popular(): array
+//     {
+//         return Cache::remember(
+//             self::CACHE_KEY,
+//             self::CACHE_TTL_SECONDS,
+//             function (): array {
+//                 $products = $this->repository->popular();
+
+//                 return $products
+//                     ->map(fn($product) => $this->transformProduct($product))
+//                     ->values()
+//                     ->all();
+//             }
+//         );
+//     }
+
+//     public static function evictPopularProducts(): void
+//     {
+//         Cache::forget(self::CACHE_KEY);
+//     }
+
+//     private function transformProduct($product): array
+//     {
+//         return [
+//             'id' => (int) $product->id,
+
+//             'category' => $product->relationLoaded('category') && $product->category
+//                 ? [
+//                     'id' => (int) $product->category->id,
+//                     'name' => $product->category->name,
+//                 ]
+//                 : null,
+
+//             'name' => $product->name,
+//             'price' => (float) $product->price,
+//             'image_url' => $product->image_url,
+//             'is_active' => (bool) $product->is_active,
+
+//             'popularity' => [
+//                 'sold_quantity' => (int) $product->sold_quantity,
+//                 'orders_count' => (int) $product->orders_count,
+//                 'estimated_revenue' => (float) $product->estimated_revenue,
+//             ],
+//         ];
+//     }
+// }
