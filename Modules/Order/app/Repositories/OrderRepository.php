@@ -102,22 +102,32 @@ class OrderRepository
                 );
             }
 
-            
+
             return $order->load('items');
-            }, 5);
-            // remove popular products cache 
-            PopularProductService::evictPopularProducts();
+        }, 5);
+        // remove popular products cache 
+        PopularProductService::evictPopularProducts();
     }
 
 
     public function find(int $id): Order
     {
-        return Order::with('items')->findOrFail($id);
+        return Order::query()
+            ->select([
+                'id',
+                'total',
+                'status',
+            ])
+            ->findOrFail($id);
     }
 
-    public function listForUser(int $userId, int $perPage = 15)
+    public function listForUser(int $perPage = 10)
     {
-        return Order::with('items')->where('user_id', $userId)->orderBy('created_at', 'desc')->paginate($perPage);
+        return auth()->user()
+            ->orders()
+            ->select(['id', 'total', 'status'])
+            ->orderByDesc('created_at')
+            ->paginate($perPage);
     }
 
     public function updateStatus(Order $order, string $status, ?string $paymentStatus = null): Order
@@ -133,25 +143,37 @@ class OrderRepository
     public function cancel(Order $order): Order
     {
         return DB::transaction(function () use ($order) {
-            if ($order->status === 'cancelled') {
+
+            if ($order->status === OrderStatus::CANCELLED->value) {
                 return $order;
             }
 
-            // restore stock
-            foreach ($order->items as $item) {
-                $product = Product::find($item->product_id);
-                if ($product) {
-                    $product->increment('stock', $item->quantity);
-                }
+            // restore stock in bulk (avoid repeated queries)
+            $items = $order->items;
+
+            $productStockMap = [];
+
+            foreach ($items as $item) {
+                $productStockMap[$item->product_id] =
+                    ($productStockMap[$item->product_id] ?? 0) + $item->quantity;
             }
 
-            $order->status = 'cancelled';
-            $order->payment_status = 'refunded';
-            $order->save();
+            // single query per product (NOT per item)
+            $products = Product::whereIn('id', array_keys($productStockMap))->get();
+
+            foreach ($products as $product) {
+                $product->increment('stock', $productStockMap[$product->id]);
+            }
+
+            // update order
+            $order->update([
+                'status' => OrderStatus::CANCELLED->value,
+                'payment_status' => 'refunded',
+            ]);
 
             PopularProductService::evictPopularProducts();
 
-            return $order;
+            return $order->refresh();
         });
     }
 }

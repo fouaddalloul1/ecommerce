@@ -7,7 +7,9 @@ use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
 class ModulePerformanceLogger
@@ -15,31 +17,40 @@ class ModulePerformanceLogger
     public function handle(Request $request, Closure $next): Response
     {
         $startedAt = microtime(true);
+
         $queryCount = 0;
         $queryTimeMs = 0.0;
         $slowWriteDetected = false;
 
-        DB::listen(function (QueryExecuted $query) use (&$queryCount, &$queryTimeMs, &$slowWriteDetected): void {
-            $queryCount++;
-            $queryTimeMs += $query->time;
+        DB::listen(
+            function (QueryExecuted $query) use (
+                &$queryCount,
+                &$queryTimeMs,
+                &$slowWriteDetected
+            ): void {
+                $queryCount++;
+                $queryTimeMs += (float) $query->time;
 
-            $sql = strtolower(trim($query->sql));
-            $isWriteOrLock = str_starts_with($sql, 'update')
-                || str_starts_with($sql, 'insert')
-                || str_starts_with($sql, 'delete')
-                || str_contains($sql, 'for update');
+                $sql = strtolower(trim($query->sql));
 
-            if ($isWriteOrLock && $query->time >= 200) {
-                $slowWriteDetected = true;
+                $isWriteOrLock =
+                    str_starts_with($sql, 'update')
+                    || str_starts_with($sql, 'insert')
+                    || str_starts_with($sql, 'delete')
+                    || str_contains($sql, 'for update');
+
+                if ($isWriteOrLock && $query->time >= 200) {
+                    $slowWriteDetected = true;
+                }
             }
-        });
+        );
 
         try {
             $response = $next($request);
         } catch (Throwable $exception) {
             $this->writeLog(
                 request: $request,
-                status: 500,
+                status: $this->getExceptionStatus($exception),
                 durationMs: (microtime(true) - $startedAt) * 1000,
                 queryCount: $queryCount,
                 queryTimeMs: $queryTimeMs,
@@ -88,11 +99,7 @@ class ModulePerformanceLogger
 
         $route = $request->route()?->uri() ?? $request->path();
 
-        Log::build([
-            'driver' => 'single',
-            'path' => storage_path("logs/{$module}.log"),
-            'locking' => true,
-        ])->info('API performance', [
+        Log::channel($module)->info('API performance', [
             'endpoint' => $request->method() . ' /' . ltrim($route, '/'),
             'time_ms' => round($durationMs, 2),
             'status' => $status,
@@ -118,15 +125,11 @@ class ModulePerformanceLogger
             return 'possible_lock_contention';
         }
 
-        if ($status >= 500) {
-            return 'application_error';
-        }
 
-        if ($queryCount >= 20) {
-            return 'possible_n_plus_one';
-        }
-
-        if ($queryTimeMs >= 150 && $queryTimeMs >= ($durationMs * 0.60)) {
+        if (
+            $queryTimeMs >= 150
+            && $queryTimeMs >= ($durationMs * 0.60)
+        ) {
             return 'database';
         }
 
@@ -139,21 +142,52 @@ class ModulePerformanceLogger
 
     private function detectModule(Request $request): ?string
     {
-        $action = strtolower((string) $request->route()?->getActionName());
+        $action = strtolower(
+            (string) $request->route()?->getActionName()
+        );
+
         $path = strtolower($request->path());
 
-        if (str_contains($action, 'modules\\product') || str_contains($path, 'products')) {
+        /*
+         * Product is checked first because:
+         * /categories/{categoryId}/products
+         * contains both "categories" and "products",
+         * but it belongs to the Product module.
+         */
+        if (
+            str_contains($action, 'modules\\product')
+            || str_contains($path, 'products')
+        ) {
             return 'product';
         }
 
-        if (str_contains($action, 'modules\\order') || str_contains($path, 'orders')) {
+        if (
+            str_contains($action, 'modules\\order')
+            || str_contains($path, 'orders')
+        ) {
             return 'order';
         }
 
-        if (str_contains($action, 'modules\\category') || str_contains($path, 'categories')) {
+        if (
+            str_contains($action, 'modules\\category')
+            || str_contains($path, 'categories')
+        ) {
             return 'category';
         }
 
         return null;
+    }
+
+    private function getExceptionStatus(Throwable $exception): int
+    {
+        if ($exception instanceof ValidationException) {
+            return $exception->status;
+        }
+
+        if ($exception instanceof HttpExceptionInterface) {
+            return $exception->getStatusCode();
+        }
+
+        return 500;
     }
 }
