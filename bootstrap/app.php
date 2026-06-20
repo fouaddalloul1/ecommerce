@@ -29,6 +29,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth' => \App\Http\Middleware\Authenticate::class,
             // 'logJobMetrics' => \App\Jobs\Middleware\LogJobMetrics::class
         ]);
+
+        // 10 requirement
+        $middleware->appendToGroup('api', [
+            \App\Http\Middleware\ModulePerformanceLogger::class,
+        ]);
+        ///////////////
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // 401 - Unauthenticated
