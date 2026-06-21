@@ -10,6 +10,7 @@ use Modules\Order\Data\CreateOrderData;
 use Modules\Order\Repositories\OrderRepository;
 use Modules\Order\Http\Resources\OrderResource;
 use OpenApi\Annotations as OA;
+use Symfony\Component\HttpFoundation\Response as ResponseAlias;
 
 
 class OrderController extends Controller
@@ -67,9 +68,13 @@ class OrderController extends Controller
     {
         $data = CreateOrderData::from(array_merge($request->validated(), ['user_id' => auth()->id()]));
        
-        $this->repository->create($data);
+        $order = $this->repository->create($data);
 
-        return MainResource::make(null);
+        return MainResource::make(
+            new OrderResource($order),
+            'Order created; invoice and notification were queued.',
+            ResponseAlias::HTTP_CREATED
+        );
     }
 
     public function show(int $id): MainResource

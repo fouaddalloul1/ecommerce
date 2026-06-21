@@ -1,61 +1,17 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-echo "========================================="
-echo "🧹 بدء التنظيف الكامل لـ Horizon والكيوز"
-echo "========================================="
+cd "$(dirname "$0")/.."
 
-# 1. إيقاف Horizon بشكل كامل
-echo ""
-echo "📌 إيقاف Horizon..."
-php artisan horizon:terminate
-sleep 2
-pkill -f "horizon" 2>/dev/null
-echo "✅ Horizon متوقف تماماً"
+echo "Stopping queue workers..."
+pkill -f "artisan queue:work" 2>/dev/null || true
 
-# 2. تفريغ Redis بالكامل (يمسح كل شيء)
-echo ""
-echo "📌 تفريغ Redis..."
-redis-cli FLUSHALL
-echo "✅ Redis تم تفريغه بالكامل"
+# Restart long-running workers after deployments or code changes.
+php artisan queue:restart || true
 
-# 3. حذف الجوبات الفاشلة من قاعدة البيانات
-echo ""
-echo "📌 حذف الجوبات الفاشلة..."
-php artisan queue:flush 2>/dev/null
-php artisan queue:forget --all 2>/dev/null
-echo "✅ الجوبات الفاشلة تم حذفها"
-
-# 4. تنظيف كل كاشات Laravel
-echo ""
-echo "📌 تنظيف الكاشات..."
-php artisan cache:clear
-php artisan config:clear
-php artisan view:clear
-php artisan route:clear
+# Clear only Laravel caches. Do not FLUSHALL because Redis is shared by
+# queues, cache, scheduler locks and distributed application locks.
 php artisan optimize:clear
-echo "✅ جميع الكاشات تم تنظيفها"
+php artisan queue:flush || true
 
-# 5. التأكد من عدم وجود عمليات PHP عالقة
-echo ""
-echo "📌 التأكد من عدم وجود عمليات عالقة..."
-pkill -f "queue:work" 2>/dev/null
-pkill -f "horizon" 2>/dev/null
-echo "✅ لا توجد عمليات عالقة"
-
-# 6. إعادة تشغيل Horizon (إذا كنت تريد)
-echo ""
-read -p "❓ هل تريد تشغيل Horizon الآن؟ (y/n): " -n 1 -r
-echo ""
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    php artisan horizon > /dev/null 2>&1 &
-    sleep 3
-    echo "✅ Horizon شغال من جديد"
-    php artisan horizon:status
-else
-    echo "⚠️ Horizon لم يتم تشغيله (يمكنك تشغيله لاحقاً بـ: php artisan horizon)"
-fi
-
-echo ""
-echo "========================================="
-echo "🎉 التنظيف الكامل انتهى!"
-echo "========================================="
+echo "Cleanup completed. Start workers with scripts/start-workers.sh."
