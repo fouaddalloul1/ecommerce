@@ -4,7 +4,7 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 
 function getMetrics() {
-    const res = http.get('http://127.0.0.1:8000/metrics/redis');
+    const res = http.get('http://127.0.0.1:8001/metrics/redis');
     return res.json();
 }
 
@@ -73,14 +73,14 @@ export default function () {
     }
 
     const res =
-        //http.post('http://127.0.0.1:8000/api/v1/orders',
-        http.post(`http://ecommerce.local/api/v1/orders`,
+        http.post('http://127.0.0.1:8001/api/v1/orders',
+            // http.post(`http://ecommerce.local/api/v1/orders`,
 
             JSON.stringify({ items: [{ product_id: 1, quantity: 1 }] }),
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer 5|aGWx2y3Kw1TdocUVIPCZ5YeFDKsRoNEV0L4rQ3p96b540e4d',
+                    'Authorization': 'Bearer 7|JQ1TfNaIGBUaOcAlLqsUtAApAhWILCYqd19Ad466415fbff0',
                 },
             }
         );

@@ -192,6 +192,136 @@ paths:
       security:
         -
           sanctum: []
+  '/api/v1/orders/{id}':
+    get:
+      tags:
+        - Orders
+      summary: 'Get order details'
+      operationId: 4a05e0baa2b406228dddc5f6b976f1d1
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Order ID'
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        200:
+          description: 'Order retrieved successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      total:
+                        type: number
+                        example: 110
+                      status:
+                        type: string
+                        example: pending
+                    type: object
+                type: object
+        404:
+          description: 'Order not found'
+      security:
+        -
+          sanctum: []
+  /api/v1/orders/my:
+    get:
+      tags:
+        - Orders
+      summary: 'Get authenticated user orders'
+      description: 'Returns paginated list of orders for the logged-in user'
+      operationId: 317378ac259a2b99d7a05617656aed88
+      parameters:
+        -
+          name: page
+          in: query
+          description: 'Page number'
+          required: false
+          schema:
+            type: integer
+            example: 1
+        -
+          name: per_page
+          in: query
+          description: 'Items per page'
+          required: false
+          schema:
+            type: integer
+            example: 10
+      responses:
+        200:
+          description: 'List of user orders'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    type: array
+                    items:
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        total:
+                          type: number
+                          example: 120.5
+                        status:
+                          type: string
+                          example: pending
+                      type: object
+                  links:
+                    description: 'Pagination links'
+                    type: object
+                  meta:
+                    description: 'Pagination metadata'
+                    type: object
+                type: object
+      security:
+        -
+          sanctum: []
+  '/api/v1/orders/{id}/cancel':
+    post:
+      tags:
+        - Orders
+      summary: 'Cancel an order'
+      description: 'Cancels an existing order and restores stock'
+      operationId: 59224d02e9b52f88f03ec32e5a6c8689
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Order ID'
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        200:
+          description: 'Order cancelled successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    type: 'null'
+                    example: null
+                  message:
+                    type: string
+                    example: 'Order cancelled'
+                type: object
+        404:
+          description: 'Order not found'
+      security:
+        -
+          sanctum: []
   /api/v1/products:
     get:
       tags:

@@ -19,52 +19,68 @@ class OrderRepository
 {
     public function create(CreateOrderData $data): Order
     {
-        $order = DB::transaction(function () use ($data): Order {
+        /*
+         * نخزن نتيجة الـTransaction بدل إرجاعها مباشرة،
+         * حتى نستطيع حذف كاش المنتجات بعد نجاح الـCommit.
+         */
+        $order = DB::transaction(function () use ($data) {
+            $total = 0;
+            $itemsPayload = [];
+
+            // Get all product ids once.
+            $productIds = collect($data->items)
+                ->pluck('product_id')
+                ->unique()
+                ->values()
+                ->toArray();
+
             /*
-             * Normalize duplicate product rows before checking stock. Without
-             * this step, the same product could pass two separate stock checks
-             * and then be decremented twice inside one request.
+             * Pessimistic locking:
+             * نحجز سجلات المنتجات حتى لا يعدل طلب متزامن
+             * المخزون نفسه قبل انتهاء هذه المعاملة.
              */
-            $normalizedItems = collect($data->items)
-                ->groupBy(fn (array $item): int => (int) $item['product_id'])
-                ->map(fn ($items, $productId): array => [
-                    'product_id' => (int) $productId,
-                    'quantity' => (int) $items->sum('quantity'),
-                ])
-                ->values();
-
-            $productIds = $normalizedItems->pluck('product_id')->all();
-
-            // Pessimistic row locks serialize concurrent stock updates.
             $products = Product::query()
                 ->whereIn('id', $productIds)
                 ->lockForUpdate()
                 ->get()
                 ->keyBy('id');
 
+            // Lock the authenticated user before deducting balance.
             $user = User::query()
-                ->whereKey(auth()->id())
+                ->where('id', auth()->id())
                 ->lockForUpdate()
-                ->firstOrFail();
+                ->first();
 
-            $total = 0.0;
-            $itemsPayload = [];
+            if (! $user) {
+                throw new \Exception('Authenticated user not found.');
+            }
 
-            foreach ($normalizedItems as $item) {
+            foreach ($data->items as $item) {
                 $product = $products->get($item['product_id']);
 
                 if (! $product) {
-                    throw new \RuntimeException("Product {$item['product_id']} not found.");
+                    throw new \Exception(
+                        "Product {$item['product_id']} not found."
+                    );
                 }
 
                 if ($product->stock < $item['quantity']) {
-                    throw new \RuntimeException(
+                    throw new \Exception(
                         "Product {$product->id} does not have enough stock."
                     );
                 }
 
+                /*
+                 * Snapshot للسعر وقت تنفيذ الطلب.
+                 * التقارير المستقبلية يجب ألا تعتمد على سعر المنتج الحالي،
+                 * لأن السعر قد يتغير بعد إتمام عملية الشراء.
+                 */
                 $unitPrice = (float) $product->price;
-                $lineTotal = round($unitPrice * $item['quantity'], 2);
+                $lineTotal = round(
+                    $unitPrice * $item['quantity'],
+                    2
+                );
+
                 $total += $lineTotal;
 
                 $itemsPayload[] = [
@@ -78,13 +94,14 @@ class OrderRepository
             $total = round($total, 2);
 
             if ((float) $user->balance < $total) {
-                throw new \RuntimeException('Insufficient balance.');
+                throw new \Exception('Insufficient balance.');
             }
 
+            // Deduct balance.
             $user->decrement('balance', $total);
 
             $order = Order::create([
-                'user_id' => $user->id,
+                'user_id' => $data->user_id,
                 'total' => $total,
                 'status' => OrderStatus::COMPLETED->value,
                 'payment_status' => PaymentStatus::PAID->value,
@@ -95,29 +112,46 @@ class OrderRepository
                     'order_id' => $order->id,
                     'product_id' => $item['product']->id,
                     'quantity' => $item['quantity'],
+
+                    // Required for accurate sales reports.
                     'unit_price' => $item['unit_price'],
                     'line_total' => $item['line_total'],
                 ]);
 
-                $item['product']->decrement('stock', $item['quantity']);
+                $item['product']->decrement(
+                    'stock',
+                    $item['quantity']
+                );
             }
 
             /*
-             * Jobs are registered inside the transaction but are pushed only
-             * after commit. A rollback therefore produces no invoice or email
-             * for an order that does not exist.
+             * ترسل المهام إلى Redis بعد نجاح الـCommit فقط.
+             *
+             * إذا فشلت المعاملة وعمل النظام Rollback،
+             * فلن يتم إنشاء PDF أو إرسال إشعار لطلب فاشل.
              */
-            GeneratePdfJob::dispatch($order->id)->afterCommit();
-            SendNotificationJob::dispatch($order->id)->afterCommit();
+            GeneratePdfJob::dispatch($order->id)
+                ->onQueue('invoices')
+                ->afterCommit();
+
+            SendNotificationJob::dispatch($order->id)
+                ->onQueue('notifications')
+                ->afterCommit();
 
             return $order->load('items');
         }, 5);
 
+        /*
+         * كان هذا السطر بعد return في النسخة القديمة،
+         * ولذلك لم يكن يُنفذ نهائيًا.
+         *
+         * نضعه بعد نجاح المعاملة، ولا نجعل فشل Redis Cache
+         * يحول الطلب الناجح إلى استجابة خطأ.
+         */
         try {
             PopularProductService::evictPopularProducts();
         } catch (\Throwable $exception) {
-            // Cache invalidation must not turn a committed order into an API error.
-            Log::warning('Popular products cache eviction failed after order commit.', [
+            Log::warning('Popular products cache eviction failed.', [
                 'order_id' => $order->id,
                 'error' => $exception->getMessage(),
             ]);
@@ -128,19 +162,29 @@ class OrderRepository
 
     public function find(int $id): Order
     {
-        return Order::with('items')->findOrFail($id);
+        return Order::query()
+            ->select([
+                'id',
+                'total',
+                'status',
+            ])
+            ->findOrFail($id);
     }
 
-    public function listForUser(int $userId, int $perPage = 15)
+    public function listForUser(int $perPage = 10)
     {
-        return Order::with('items')
-            ->where('user_id', $userId)
+        return auth()->user()
+            ->orders()
+            ->select(['id', 'total', 'status'])
             ->orderByDesc('created_at')
             ->paginate($perPage);
     }
 
-    public function updateStatus(Order $order, string $status, ?string $paymentStatus = null): Order
-    {
+    public function updateStatus(
+        Order $order,
+        string $status,
+        ?string $paymentStatus = null
+    ): Order {
         $order->status = $status;
 
         if ($paymentStatus) {
@@ -154,51 +198,46 @@ class OrderRepository
 
     public function cancel(Order $order): Order
     {
-        $cancelledOrder = DB::transaction(function () use ($order): Order {
-            $lockedOrder = Order::query()
-                ->with('items')
-                ->lockForUpdate()
-                ->findOrFail($order->id);
-
-            if ($lockedOrder->status === OrderStatus::CANCELLED->value) {
-                return $lockedOrder;
+        /*
+         * أبقينا منطق cancel الخاص برفيقك كما هو،
+         * ولم ندمج تعديلات أخرى فيه.
+         */
+        return DB::transaction(function () use ($order) {
+            if ($order->status === OrderStatus::CANCELLED->value) {
+                return $order;
             }
 
-            $productIds = $lockedOrder->items->pluck('product_id')->unique()->all();
-            $products = Product::query()
-                ->whereIn('id', $productIds)
-                ->lockForUpdate()
-                ->get()
-                ->keyBy('id');
+            // Restore stock in bulk.
+            $items = $order->items;
 
-            foreach ($lockedOrder->items as $item) {
-                $products->get($item->product_id)?->increment('stock', $item->quantity);
+            $productStockMap = [];
+
+            foreach ($items as $item) {
+                $productStockMap[$item->product_id] =
+                    ($productStockMap[$item->product_id] ?? 0)
+                    + $item->quantity;
             }
 
-            $user = User::query()
-                ->whereKey($lockedOrder->user_id)
-                ->lockForUpdate()
-                ->firstOrFail();
+            $products = Product::whereIn(
+                'id',
+                array_keys($productStockMap)
+            )->get();
 
-            $user->increment('balance', (float) $lockedOrder->total);
+            foreach ($products as $product) {
+                $product->increment(
+                    'stock',
+                    $productStockMap[$product->id]
+                );
+            }
 
-            $lockedOrder->update([
+            $order->update([
                 'status' => OrderStatus::CANCELLED->value,
-                'payment_status' => PaymentStatus::REFUNDED->value,
+                'payment_status' => 'refunded',
             ]);
 
-            return $lockedOrder;
-        }, 5);
-
-        try {
             PopularProductService::evictPopularProducts();
-        } catch (\Throwable $exception) {
-            Log::warning('Popular products cache eviction failed after order cancellation.', [
-                'order_id' => $cancelledOrder->id,
-                'error' => $exception->getMessage(),
-            ]);
-        }
 
-        return $cancelledOrder;
+            return $order->refresh();
+        });
     }
 }
