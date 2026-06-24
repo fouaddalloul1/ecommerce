@@ -1,59 +1,445 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Laravel Modular E-Commerce API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A modular Laravel 12 e-commerce API designed to handle concurrent workloads while preserving data integrity and providing clear performance visibility.
 
-## About Laravel
+The project includes transactional order processing, concurrency protection, Redis caching, asynchronous queues, batch reporting, Nginx load balancing, k6 load testing, and module-level performance monitoring.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Project Architecture
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+The application follows a modular structure:
 
-## Learning Laravel
+```text
+Modules/
+├── Product/
+├── Category/
+├── Order/
+└── ...
+```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+Each module contains its own controllers, services, repositories, requests, data objects, models, routes, and related business logic.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+The main tested modules are:
 
-## Laravel Sponsors
+- Product
+- Category
+- Order
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+---
 
-### Premium Partners
+## Main Features
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+- Modular Laravel architecture
+- RESTful API
+- Sanctum authentication
+- Transactional order processing
+- Stock and balance consistency
+- Database row locking for concurrent writes
+- Redis distributed caching
+- Cache stampede protection
+- Asynchronous queue processing
+- Horizon queue monitoring
+- Daily and weekly batch reports
+- Nginx load balancing
+- Capacity-control middleware
+- k6 load and stress testing
+- Module-level performance logging
+- Bottleneck detection for database, application, and lock contention
 
-## Contributing
+---
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## API Endpoints
 
-## Code of Conduct
+Base URL:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```text
+/api/v1
+```
 
-## Security Vulnerabilities
+### Product Endpoints
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```http
+GET    /products
+GET    /products/{id}
+GET    /products/popular
+GET    /categories/{categoryId}/products
+POST   /products
+PUT    /products/update/{id}
+DELETE /products/{id}
+PUT    /products/decrease-stock/{id}
+```
+
+### Category Endpoints
+
+```http
+GET    /categories
+GET    /categories/{id}
+POST   /categories
+PUT    /categories/{id}
+DELETE /categories/{id}
+```
+
+### Order Endpoints
+
+```http
+POST /orders
+GET  /orders/my
+GET  /orders/{id}
+POST /orders/{id}/cancel
+PUT  /orders/{id}/status
+```
+
+---
+
+## Concurrent Load Testing
+
+The project includes a modular k6 test suite.
+
+```text
+general-test.js
+support.js
+
+Modules/
+├── Product/
+│   └── products.js
+├── Category/
+│   └── categories.js
+└── Order/
+    └── orders.js
+```
+
+The test simulates up to 100 concurrent users and executes multiple Product, Category, and Order routes together.
+
+### Traffic Distribution
+
+- 50% Product operations
+- 20% Category operations
+- 30% Order operations
+
+The Product scenario includes both read and write operations:
+
+- Browse products
+- Get a product by ID
+- Get popular products
+- Get products by category
+- Create a product
+- Update a product
+
+The Order scenario includes:
+
+- Get authenticated-user orders
+- Get order details
+- Create an order
+- Cancel an order
+
+### Load Stages
+
+```javascript
+stages: [
+    { duration: '30s', target: 50 },
+    { duration: '1m',  target: 50 },
+    { duration: '30s', target: 100 },
+    { duration: '2m',  target: 100 },
+    { duration: '30s', target: 0 },
+]
+```
+
+### Run the Test
+
+Update the configuration inside `support.js`:
+
+```javascript
+export const BASE_URL = 'http://127.0.0.1:8000/api/v1';
+export const TOKEN = 'PUT_YOUR_SANCTUM_TOKEN_HERE';
+
+export const PRODUCT_IDS = [1, 2, 3, 4, 5];
+export const CATEGORY_IDS = [1, 2, 3, 4];
+export const ORDER_IDS = [1, 2, 3];
+```
+
+Then run:
+
+```bash
+k6 run general-test.js
+```
+
+> Never commit a real Sanctum token to the repository.
+
+---
+
+## Latest Local Load-Test Result
+
+A local test reached 100 concurrent users and executed requests across all three modules.
+
+| Metric | Result |
+|---|---:|
+| Total checks | 1790 |
+| Successful checks | 100% |
+| Failed checks | 0% |
+| API error rate | 0.00% |
+| Throughput | 6.53 requests/second |
+| Average HTTP duration | 10.66 seconds |
+| P95 | 17.84 seconds |
+| P99 | 18.52 seconds |
+| Maximum duration | 19.35 seconds |
+
+All tested API requests returned valid responses, but the latency results show a clear performance bottleneck under high concurrency.
+
+The similar response times across Product, Category, and Order modules suggest that the bottleneck may be related to shared infrastructure or server capacity rather than one isolated endpoint.
+
+Possible areas for further tuning include:
+
+- Apache worker configuration
+- PHP process capacity
+- Database connection and thread limits
+- Database lock waits
+- Redis and queue configuration
+- Disk I/O
+- Local XAMPP environment limitations
+
+---
+
+## Module-Level Performance Monitoring
+
+The project uses a centralized middleware:
+
+```text
+app/Http/Middleware/ModulePerformanceLogger.php
+```
+
+The middleware measures each API request without modifying controllers or services.
+
+It records:
+
+- Endpoint
+- Response time
+- HTTP status
+- Detected bottleneck
+
+The middleware is registered globally for API routes in:
+
+```text
+bootstrap/app.php
+```
+
+Example:
+
+```php
+$middleware->appendToGroup('api', [
+    \App\Http\Middleware\ModulePerformanceLogger::class,
+]);
+```
+
+---
+
+## Module Log Files
+
+Dedicated logging channels are configured in:
+
+```text
+config/logging.php
+```
+
+Runtime log files:
+
+```text
+storage/logs/product.log
+storage/logs/category.log
+storage/logs/order.log
+```
+
+Example:
+
+```json
+{
+  "endpoint": "GET /api/v1/orders/my",
+  "time_ms": 648.64,
+  "status": 200,
+  "bottleneck": "database"
+}
+```
+
+### Bottleneck Values
+
+| Value | Meaning |
+|---|---|
+| `none` | No performance warning was detected |
+| `database` | Database queries consumed most of the request time |
+| `slow_application` | The request was slow outside the measured database time |
+| `possible_lock_contention` | A slow write, deadlock, or lock wait may have occurred |
+
+HTTP status and bottleneck classification are intentionally separate.
+
+For example:
+
+```json
+{
+  "endpoint": "GET /api/v1/products",
+  "time_ms": 48.37,
+  "status": 500,
+  "bottleneck": "none"
+}
+```
+
+This means the request failed functionally, but no performance bottleneck was detected by the middleware.
+
+---
+
+## Distributed Caching
+
+Popular products are cached using Redis.
+
+A distributed cache lock prevents multiple application instances from rebuilding the same cache entry at the same time.
+
+This protects the endpoint from cache stampede during concurrent traffic.
+
+```http
+GET /api/v1/products/popular
+```
+
+---
+
+## Queue Processing
+
+Time-consuming tasks are moved outside the main HTTP request through Laravel queues.
+
+Examples include:
+
+- PDF invoice generation
+- Email delivery
+- Notifications
+- Report generation
+
+Laravel Horizon can be used to monitor queue throughput, runtime, retries, and failures.
+
+```bash
+php artisan horizon
+```
+
+---
+
+## Batch Processing
+
+The application includes chunk-based batch processing for sales reports.
+
+Example:
+
+```bash
+php artisan sales:daily-process --date=2026-06-21 --force
+```
+
+The implementation processes records in bounded chunks to reduce memory consumption and avoid loading the full dataset into memory.
+
+---
+
+## Load Balancing
+
+The application can run behind Nginx with multiple Laravel/Apache backend instances.
+
+The load balancer distributes incoming requests between the available application servers while Redis provides a shared cache and queue backend.
+
+Example architecture:
+
+```text
+Client
+  |
+  v
+Nginx Load Balancer
+  |
+  +-- Laravel Server 1
+  +-- Laravel Server 2
+  +-- Laravel Server 3
+          |
+          v
+     Shared Redis
+          |
+          v
+       Database
+```
+
+---
+
+## Database Capacity
+
+For local XAMPP testing, database capacity can be configured in:
+
+```text
+C:\xampp\mysql\bin\my.ini
+```
+
+Example:
+
+```ini
+[mysqld]
+max_connections=200
+```
+
+After changing the value, restart MySQL and verify:
+
+```sql
+SHOW GLOBAL VARIABLES LIKE 'max_connections';
+SHOW GLOBAL STATUS LIKE 'Max_used_connections';
+```
+
+Increasing the connection limit should only be done after verifying that the existing limit is actually being reached.
+
+---
+
+## Installation
+
+```bash
+git clone <repository-url>
+cd ecommerce
+
+composer install
+cp .env.example .env
+
+php artisan key:generate
+php artisan migrate --seed
+php artisan optimize:clear
+```
+
+Start the application using the configured Apache, Nginx, or PHP environment.
+
+For production-like load testing, avoid relying only on the built-in development server.
+
+---
+
+## Technology Stack
+
+- PHP
+- Laravel 12
+- Laravel Modules
+- MySQL / MariaDB
+- Redis
+- Laravel Horizon
+- Nginx
+- Apache
+- k6
+- Laravel Sanctum
+
+---
+
+## Repository Topics
+
+Recommended GitHub topics:
+
+```text
+laravel
+php
+ecommerce-api
+modular-architecture
+redis
+distributed-locking
+queue-processing
+load-balancing
+k6
+performance-monitoring
+```
+
+---
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project was developed for academic and technical evaluation purposes.
