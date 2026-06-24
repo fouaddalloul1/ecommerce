@@ -6,58 +6,78 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
-use Modules\Order\Models\Order;
-use Modules\Order\Mail\InvoiceMail;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Modules\Order\DTOs\InvoiceEmailMessage;
+use Modules\Order\Mail\InvoiceMail;
+use Modules\Order\Models\Order;
+use Throwable;
 
 class SendEmailWithPdfJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $orderId;
-    public string $pdfPath;
     public int $tries = 5;
+    public int $timeout = 120;
 
-    public function __construct(int $orderId, string $pdfPath)
+    /** @var array<int, int> */
+    public array $backoff = [15, 60, 180, 300];
+
+    public function __construct(
+        public int $orderId,
+        public string $pdfPath
+    ) {
+        $this->onConnection('redis');
+        $this->onQueue('notifications');
+    }
+
+    /** @return array<int, object> */
+    public function middleware(): array
     {
-        $this->orderId = $orderId;
-        $this->pdfPath = $pdfPath;
+        return [
+            (new WithoutOverlapping("invoice-email:{$this->orderId}"))
+                ->releaseAfter(15)
+                ->expireAfter($this->timeout + 60),
+        ];
     }
 
     public function handle(): void
     {
         $order = Order::with('user')->find($this->orderId);
 
-        if (!$order || !$order->user) {
-            Log::error("Order or user missing", ['order_id' => $this->orderId]);
+        if (! $order || ! $order->user) {
+            throw new \RuntimeException("Order {$this->orderId} or its user does not exist.");
+        }
+
+        // Idempotency guard for normal retries and duplicate dispatches.
+        if ($order->invoice_sent_at) {
+            Log::info('Invoice email already sent; job skipped.', ['order_id' => $this->orderId]);
+
             return;
         }
 
-        // المسار المطلق
-        $absolutePath = storage_path($this->pdfPath);
-
-        // إذا لم يكن موجوداً، جرب المسار المباشر
-        if (!file_exists($absolutePath)) {
-            $absolutePath = storage_path("app/private/{$this->pdfPath}");
+        if (! Storage::disk('local')->exists($this->pdfPath)) {
+            throw new \RuntimeException("Invoice PDF does not exist: {$this->pdfPath}");
         }
 
-        if (!file_exists($absolutePath)) {
-            Log::error("PDF file missing", ['order_id' => $this->orderId, 'path' => $absolutePath]);
-            throw new \Exception("PDF file not found: {$this->pdfPath}");
-        }
+        $absolutePath = Storage::disk('local')->path($this->pdfPath);
+        $message = new InvoiceEmailMessage($order, $absolutePath);
 
-        $msg = new InvoiceEmailMessage($order, $absolutePath);
+        Mail::to($order->user->email)->send(new InvoiceMail($message));
 
-        try {
-            Mail::to($order->user->email)->send(new InvoiceMail($msg));
-            Log::info("Invoice email sent", ['order_id' => $this->orderId]);
-        } catch (\Throwable $e) {
-            Log::error("Failed to send email", ['error' => $e->getMessage()]);
-            throw $e;
-        }
+        $order->update(['invoice_sent_at' => now()]);
+
+        Log::info('Invoice email sent.', ['order_id' => $this->orderId]);
+    }
+
+    public function failed(Throwable $exception): void
+    {
+        Log::error('Invoice email job exhausted all retries.', [
+            'order_id' => $this->orderId,
+            'error' => $exception->getMessage(),
+        ]);
     }
 }

@@ -13,6 +13,7 @@
         "barryvdh/laravel-dompdf": "^3.1",
         "darkaonline/l5-swagger": "9.0",
         "laravel/framework": "^12.0",
+        "laravel/horizon": "^5.47",
         "laravel/pulse": "^1.7",
         "laravel/sanctum": "^4.3",
         "laravel/telescope": "^5.20",
@@ -58,7 +59,7 @@
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1 --timeout=0\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,queue,logs,vite --kill-others"
+            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74,#86efac\" \"php artisan serve\" \"php artisan queue:work redis --queue=invoices,notifications,default --sleep=1 --tries=3 --timeout=240\" \"php artisan queue:work redis-reports --queue=reports --sleep=1 --tries=3 --timeout=1800\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,queues,reports,logs,vite --kill-others"
         ],
         "test": [
             "@php artisan config:clear --ansi",

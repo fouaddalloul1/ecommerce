@@ -16,6 +16,9 @@ class Order extends Model
         'total' => 'decimal:2',
         'shipping_address' => 'array',
         'billing_address' => 'array',
+        'invoice_generated_at' => 'datetime',
+        'invoice_sent_at' => 'datetime',
+        'notification_sent_at' => 'datetime',
     ];
 
     public function items(): HasMany

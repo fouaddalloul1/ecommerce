@@ -20,11 +20,18 @@ class InvoiceMail extends Mailable
 
     public function build()
     {
-        return $this->subject("Invoice for Order #{$this->msg->order->id}")
-                    ->view('order::emails.invoice-email')
-                    ->attach($this->msg->pdfPath, [
-                        'as' => "invoice-{$this->msg->order->id}.pdf",
-                        'mime' => 'application/pdf',
-                    ]);
+        return $this
+            ->subject("Invoice for Order #{$this->msg->order->id}")
+
+            /*
+             * This template uses Laravel Markdown mail components,
+             * so it must be rendered with markdown(), not view().
+             */
+            ->markdown('order::emails.invoice-email')
+
+            ->attach($this->msg->pdfPath, [
+                'as' => "invoice-{$this->msg->order->id}.pdf",
+                'mime' => 'application/pdf',
+            ]);
     }
 }
