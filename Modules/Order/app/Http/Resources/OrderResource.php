@@ -23,7 +23,7 @@ class OrderResource extends JsonResource
                 'notification_sent_at' => $this->notification_sent_at?->toDateTimeString(),
             ],
             'items' => $this->whenLoaded('items', function () {
-                return $this->items->map(fn ($item): array => [
+                return $this->items->map(fn($item): array => [
                     'id' => (int) $item->id,
                     'product_id' => (int) $item->product_id,
                     'quantity' => (int) $item->quantity,
