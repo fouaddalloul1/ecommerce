@@ -2,7 +2,7 @@ import { check } from 'k6';
 import { Rate, Trend } from 'k6/metrics';
 
 export const BASE_URL = 'http://127.0.0.1:8000/api/v1';
-export const TOKEN = 'Bearer 8|8kiSi8Vgzuqo4ewB4iMTCKZ11YnyLtlQqfFl4goR27a3bc71';
+export const TOKEN = 'Bearer 1|HdmaOKemJ27gdGBXhtCpEZTzGIzjpAKeflk10IfOc8165952';
 
 export const PRODUCT_IDS = [1, 2, 3, 4, 5];
 export const CATEGORY_IDS = [1, 2, 3];
