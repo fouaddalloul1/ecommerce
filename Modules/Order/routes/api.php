@@ -11,7 +11,9 @@ Route::prefix('v1')
 
         Route::post('orders', 'create')
         ->middleware('capacity');
+        
         Route::get('orders/my', 'myOrders');
+
         Route::get('orders/{id}', 'show');
         Route::post('orders/{id}/cancel', 'cancel');
 

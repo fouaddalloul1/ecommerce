@@ -2,10 +2,10 @@
 
 # ============================================================
 # Simple Script - No Auto Setup
-# You are responsible for configuring Horizon and workers manually
+# You are responsible for starting the queue workers manually
 # ============================================================
 
-PROJECT_PATH="~/ecommers"
+PROJECT_PATH="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$PROJECT_PATH"
 
 # Colors
@@ -40,11 +40,11 @@ measure_resources() {
     local ram_used=$(free -m | awk 'NR==2{print $3}')
     local ram_total=$(free -m | awk 'NR==2{print $2}')
     local ram_percent=$(echo "scale=2; $ram_used * 100 / $ram_total" | bc)
-    local horizon_workers=$(ps aux | grep "horizon:work" | grep -v grep | wc -l)
+    local queue_workers=$(ps aux | grep "artisan queue:work" | grep -v grep | wc -l)
 
-    echo "$timestamp,$label,$cpu,$ram_used,$ram_percent,$horizon_workers" >> "$PROJECT_PATH/measurements.csv"
+    echo "$timestamp,$label,$cpu,$ram_used,$ram_percent,$queue_workers" >> "$PROJECT_PATH/measurements.csv"
 
-    echo -e "${GREEN}📊 $label: CPU=${cpu}%, RAM=${ram_used}MB (${ram_percent}%), Horizon Workers=${horizon_workers}${NC}"
+    echo -e "${GREEN}📊 $label: CPU=${cpu}%, RAM=${ram_used}MB (${ram_percent}%), Queue Workers=${queue_workers}${NC}"
 }
 
 # Extract k6 results from JSON file
@@ -93,8 +93,8 @@ run_current_test() {
     print_header "🚀 Starting Test: $test_name"
 
     echo -e "${YELLOW}⚠️ Please ensure:${NC}"
-    echo "   1. Horizon is running (php artisan horizon)"
-    echo "   2. Number of workers is set as desired in config/horizon.php"
+    echo "   1. queue workers are running (scripts/start-workers.sh)"
+    echo "   2. the desired number of queue:work processes is running"
     echo "   3. QUEUE_CONNECTION is set correctly in .env"
     echo ""
     read -p "Is everything ready? (Press Enter to continue)"
@@ -217,7 +217,7 @@ init_files() {
         echo "test_name,p95_response_sec,avg_response_sec,total_requests,timestamp" > "$PROJECT_PATH/k6_results.csv"
     fi
     if [ ! -f "$PROJECT_PATH/measurements.csv" ]; then
-        echo "timestamp,stage,cpu_percent,ram_mb,ram_percent,horizon_workers" > "$PROJECT_PATH/measurements.csv"
+        echo "timestamp,stage,cpu_percent,ram_mb,ram_percent,queue_workers" > "$PROJECT_PATH/measurements.csv"
     fi
 }
 
@@ -232,8 +232,8 @@ show_menu() {
     echo "╠══════════════════════════════════════════════════════════════╣"
     echo "║                                                              ║"
     echo "║  You are responsible for preparing the environment:         ║"
-    echo "║    • Start Horizon (php artisan horizon)                     ║"
-    echo "║    • Set number of workers in config/horizon.php             ║"
+    echo "║    • Start queue workers (scripts/start-workers.sh)                     ║"
+    echo "║    • Set the number of queue:work processes             ║"
     echo "║    • Set QUEUE_CONNECTION in .env                            ║"
     echo "║                                                              ║"
     echo "║  Options:                                                    ║"

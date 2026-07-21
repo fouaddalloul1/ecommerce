@@ -20,13 +20,13 @@ export default function () {
     const params = {
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer 2|uP9fmEiDqS7vIEOo2jlMxT6fRxBaqmtAcm2pRHNw7b27f565',
+            'Authorization': 'Bearer 7|JQ1TfNaIGBUaOcAlLqsUtAApAhWILCYqd19Ad466415fbff0',
         },
     };
 
     const res = http.put(
         // `http://ecommerce.local/api/v1/products/decrease-stock/${productId}`,
-        `http://127.0.0.1:8000/api/v1/products/decrease-stock/${productId}`,
+        `http://127.0.0.1:8001/api/v1/products/decrease-stock/${productId}`,
         payload,
         params
     );

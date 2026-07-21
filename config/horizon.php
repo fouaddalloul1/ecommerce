@@ -8,52 +8,122 @@ return [
     |--------------------------------------------------------------------------
     | Horizon Name
     |--------------------------------------------------------------------------
+    |
+    | الاسم الذي سيظهر في لوحة Horizon.
+    |
     */
+
     'name' => env('HORIZON_NAME', 'Horizon'),
 
     /*
     |--------------------------------------------------------------------------
-    | Horizon Domain & Path
+    | Horizon Domain
     |--------------------------------------------------------------------------
+    |
+    | يمكن تحديد Domain مستقل للوحة Horizon.
+    | عند تركه null ستعمل اللوحة على Domain التطبيق نفسه.
+    |
     */
+
     'domain' => env('HORIZON_DOMAIN'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Horizon Path
+    |--------------------------------------------------------------------------
+    |
+    | المسار الذي تفتح منه لوحة Horizon.
+    | مثال: http://127.0.0.1:8000/horizon
+    |
+    */
+
     'path' => env('HORIZON_PATH', 'horizon'),
 
     /*
     |--------------------------------------------------------------------------
     | Horizon Redis Connection
     |--------------------------------------------------------------------------
+    |
+    | هذا الاتصال يستخدمه Horizon لحفظ معلوماته الداخلية:
+    | supervisors, metrics, failed jobs, monitoring...
+    |
+    | هذا لا يعني أن Horizon سيعالج default queue فقط.
+    | اتصال كل Queue يحدد داخل كل Supervisor.
+    |
     */
+
     'use' => 'default',
-    'prefix' => env('HORIZON_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_horizon:'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Horizon Redis Prefix
+    |--------------------------------------------------------------------------
+    |
+    | Prefix يمنع تعارض بيانات Horizon إذا كانت عدة تطبيقات
+    | تستخدم Redis Server نفسه.
+    |
+    */
+
+    'prefix' => env(
+        'HORIZON_PREFIX',
+        Str::slug(env('APP_NAME', 'laravel'), '_').'_horizon:'
+    ),
 
     /*
     |--------------------------------------------------------------------------
     | Horizon Route Middleware
     |--------------------------------------------------------------------------
+    |
+    | Middleware التي تحمي لوحة Horizon.
+    | في بيئة Production يفضّل إضافة Authorization داخل
+    | HorizonServiceProvider لمنع وصول أي مستخدم إلى اللوحة.
+    |
     */
+
     'middleware' => ['web'],
 
     /*
     |--------------------------------------------------------------------------
     | Queue Wait Time Thresholds
     |--------------------------------------------------------------------------
+    |
+    | عدد الثواني التي بعد تجاوزها يعتبر Horizon أن Job
+    | انتظرت طويلًا داخل الطابور.
+    |
+    | الصيغة:
+    | queue-connection:queue-name
+    |
     */
+
     'waits' => [
+        'redis:invoices' => 60,
+        'redis:notifications' => 30,
         'redis:default' => 60,
+
+        // Daily Batch Processing queue.
+        'redis-reports:reports' => 300,
     ],
 
     /*
     |--------------------------------------------------------------------------
     | Job Trimming Times
     |--------------------------------------------------------------------------
+    |
+    | القيم بالدقائق، وتحدد مدة الاحتفاظ بتاريخ الـJobs
+    | داخل لوحة Horizon.
+    |
     */
+
     'trim' => [
         'recent' => 60,
         'pending' => 60,
         'completed' => 60,
+
+        // Keep failed jobs for seven days.
         'recent_failed' => 10080,
         'failed' => 10080,
+
+        // Keep monitored jobs for seven days.
         'monitored' => 10080,
     ],
 
@@ -61,15 +131,30 @@ return [
     |--------------------------------------------------------------------------
     | Silenced Jobs
     |--------------------------------------------------------------------------
+    |
+    | يمكن وضع أسماء Jobs لا نريد ظهورها ضمن قائمة Completed Jobs.
+    |
     */
+
     'silenced' => [],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Silenced Tags
+    |--------------------------------------------------------------------------
+    */
+
     'silenced_tags' => [],
 
     /*
     |--------------------------------------------------------------------------
     | Metrics
     |--------------------------------------------------------------------------
+    |
+    | عدد Metrics Snapshots التي يحتفظ بها Horizon.
+    |
     */
+
     'metrics' => [
         'trim_snapshots' => [
             'job' => 24,
@@ -81,109 +166,336 @@ return [
     |--------------------------------------------------------------------------
     | Fast Termination
     |--------------------------------------------------------------------------
+    |
+    | عند false ينتظر Horizon العمليات القديمة لتنتهي عند إعادة التشغيل.
+    |
     */
+
     'fast_termination' => false,
 
     /*
     |--------------------------------------------------------------------------
-    | Memory Limit (MB)
+    | Horizon Master Memory Limit
     |--------------------------------------------------------------------------
+    |
+    | الحد الخاص بعملية Horizon الرئيسية وليس بكل Worker.
+    |
     */
+
     'memory_limit' => 64,
 
     /*
     |--------------------------------------------------------------------------
-    | Default Supervisor Configuration (template)
+    | Default Supervisor Configuration
     |--------------------------------------------------------------------------
+    |
+    | Template افتراضي. كل Supervisor داخل environments
+    | يحتوي أيضًا على إعداداته الكاملة والمستقلة.
+    |
     */
+
     'defaults' => [
         'supervisor-default' => [
             'connection' => 'redis',
             'queue' => ['default'],
+
             'balance' => 'simple',
-            'maxProcesses' => 1,
+            'processes' => 1,
+
             'maxTime' => 0,
             'maxJobs' => 0,
+
             'memory' => 128,
             'tries' => 3,
-            'timeout' => 60,
+            'timeout' => 180,
             'nice' => 0,
         ],
     ],
 
     /*
     |--------------------------------------------------------------------------
-    | ENVIRONMENT-SPECIFIC SUPERVISORS
+    | Environment-Specific Supervisors
     |--------------------------------------------------------------------------
     |
-    | ✅ هذا هو المكان الصحيح لتعريف المشرفين حسب البيئة
-    | ✅ هنا ستتحكم بعدد الـ workers لكل queue
+    | لكل نوع من المهام Supervisor مستقلة:
+    |
+    | 1. invoices:
+    |    توليد ملفات PDF.
+    |
+    | 2. notifications:
+    |    إرسال الفواتير والإشعارات.
+    |
+    | 3. default:
+    |    المهام العامة.
+    |
+    | 4. reports:
+    |    جرد المبيعات اليومية ومعالجة البيانات على دفعات.
     |
     */
+
     'environments' => [
 
-        // ============================================================
-        // بيئة PRODUCTION (للسيرفر الحقيقي)
-        // ============================================================
+        /*
+        |--------------------------------------------------------------------------
+        | Production Environment
+        |--------------------------------------------------------------------------
+        */
+
         'production' => [
-            'invoices' => [
+
+            /*
+             * PDF invoice generation.
+             *
+             * GeneratePdfJob timeout: 180 seconds.
+             * Horizon timeout:        240 seconds.
+             * Redis retry_after:      300 seconds.
+             *
+             * Safe order:
+             * 180 < 240 < 300
+             */
+            'supervisor-invoices' => [
                 'connection' => 'redis',
                 'queue' => ['invoices'],
+
                 'balance' => 'simple',
-                'processes' => 5,          // عدد العمال لملفات PDF
+                'processes' => 3,
+
+                'maxTime' => 0,
+                'maxJobs' => 0,
+
+                'memory' => 256,
                 'tries' => 3,
-                'timeout' => 600,          // 10 دقائق (PDF طويل)
+                'timeout' => 240,
+                'nice' => 0,
             ],
-            'notifications' => [
+
+            /*
+             * Invoice email and order notification jobs.
+             *
+             * Longest Job timeout: 120 seconds.
+             * Horizon timeout:     180 seconds.
+             * Redis retry_after:   300 seconds.
+             *
+             * Safe order:
+             * 120 < 180 < 300
+             */
+            'supervisor-notifications' => [
                 'connection' => 'redis',
                 'queue' => ['notifications'],
+
                 'balance' => 'simple',
-                'processes' => 5,          // عدد العمال للإيميلات
-                'tries' => 3,
-                'timeout' => 60,
+                'processes' => 5,
+
+                'maxTime' => 0,
+                'maxJobs' => 0,
+
+                'memory' => 128,
+                'tries' => 5,
+                'timeout' => 180,
+                'nice' => 0,
             ],
-            'default' => [
+
+            /*
+             * General background jobs.
+             */
+            'supervisor-default' => [
                 'connection' => 'redis',
                 'queue' => ['default'],
-                'balance' => 'auto',
-                'processes' => 5,
+
+                'balance' => 'simple',
+                'processes' => 1,
+
+                'maxTime' => 0,
+                'maxJobs' => 0,
+
+                'memory' => 128,
                 'tries' => 3,
-                'timeout' => 60,
+                'timeout' => 180,
+                'nice' => 0,
+            ],
+
+            /*
+             * Daily Sales Batch Processing.
+             *
+             * ProcessDailySalesJob timeout: 1800 seconds.
+             * Horizon timeout:              1850 seconds.
+             * redis-reports retry_after:    1900 seconds.
+             *
+             * Safe order:
+             * 1800 < 1850 < 1900
+             *
+             * Worker واحدة فقط لأن التقرير مهمة ثقيلة
+             * على CPU وRAM وقاعدة البيانات.
+             */
+            'supervisor-reports' => [
+                'connection' => 'redis-reports',
+                'queue' => ['reports'],
+
+                'balance' => 'simple',
+                'processes' => 1,
+
+                'maxTime' => 0,
+                'maxJobs' => 0,
+
+                'memory' => 512,
+                'tries' => 3,
+                'timeout' => 1850,
+                'nice' => 0,
             ],
         ],
 
-        // ============================================================
-        // بيئة LOCAL (جهاز التطوير والتجارب)
-        // ============================================================
+        /*
+        |--------------------------------------------------------------------------
+        | Local Environment
+        |--------------------------------------------------------------------------
+        |
+        | إعدادات جهاز التطوير والتجارب.
+        |
+        | يمكن تعديل processes للفواتير والإشعارات إلى 1 أو 3 أو 5
+        | عند إجراء Benchmark لقياس أثر عدد الـWorkers.
+        |
+        */
+
         'local' => [
-            // Supervisor خاص بـ invoices (PDF - وقت طويل)
-            'invoices' => [
+
+            'supervisor-invoices' => [
                 'connection' => 'redis',
                 'queue' => ['invoices'],
+
                 'balance' => 'simple',
-                'processes' => PHP_OS_FAMILY === 'Windows' ? 0 : 2,          // 🔁 غيّر هذا الرقم إلى (1, 3, 5) لكل اختبار
+                'processes' => 2,
+
+                'maxTime' => 0,
+                'maxJobs' => 0,
+
+                'memory' => 256,
                 'tries' => 3,
-                'timeout' => 600,
+                'timeout' => 240,
+                'nice' => 0,
             ],
 
-            // Supervisor خاص بـ notifications (إيميلات - وقت قصير)
-            'notifications' => [
+            'supervisor-notifications' => [
                 'connection' => 'redis',
                 'queue' => ['notifications'],
+
                 'balance' => 'simple',
-                'processes' => PHP_OS_FAMILY === 'Windows' ? 0 : 3,           // 🔁 غيّر هذا الرقم أيضاً للتجربة
-                'tries' => 3,
-                'timeout' => 60,
+                'processes' => 3,
+
+                'maxTime' => 0,
+                'maxJobs' => 0,
+
+                'memory' => 128,
+                'tries' => 5,
+                'timeout' => 180,
+                'nice' => 0,
             ],
 
-            // Supervisor للـ default (لو احتجته لأي شيء ثانوي)
-            'default' => [
+            'supervisor-default' => [
                 'connection' => 'redis',
                 'queue' => ['default'],
-                'balance' => 'auto',
-                'processes' => 5,
+
+                'balance' => 'simple',
+                'processes' => 1,
+
+                'maxTime' => 0,
+                'maxJobs' => 0,
+
+                'memory' => 128,
                 'tries' => 3,
-                'timeout' => 60,
+                'timeout' => 180,
+                'nice' => 0,
+            ],
+
+            'supervisor-reports' => [
+                'connection' => 'redis-reports',
+                'queue' => ['reports'],
+
+                'balance' => 'simple',
+                'processes' => 1,
+
+                'maxTime' => 0,
+                'maxJobs' => 0,
+
+                'memory' => 512,
+                'tries' => 3,
+                'timeout' => 1850,
+                'nice' => 0,
+            ],
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | Fallback Environment
+        |--------------------------------------------------------------------------
+        |
+        | يستخدم إذا كانت APP_ENV ليست local أو production.
+        |
+        */
+
+        '*' => [
+
+            'supervisor-invoices' => [
+                'connection' => 'redis',
+                'queue' => ['invoices'],
+
+                'balance' => 'simple',
+                'processes' => 1,
+
+                'maxTime' => 0,
+                'maxJobs' => 0,
+
+                'memory' => 256,
+                'tries' => 3,
+                'timeout' => 240,
+                'nice' => 0,
+            ],
+
+            'supervisor-notifications' => [
+                'connection' => 'redis',
+                'queue' => ['notifications'],
+
+                'balance' => 'simple',
+                'processes' => 1,
+
+                'maxTime' => 0,
+                'maxJobs' => 0,
+
+                'memory' => 128,
+                'tries' => 5,
+                'timeout' => 180,
+                'nice' => 0,
+            ],
+
+            'supervisor-default' => [
+                'connection' => 'redis',
+                'queue' => ['default'],
+
+                'balance' => 'simple',
+                'processes' => 1,
+
+                'maxTime' => 0,
+                'maxJobs' => 0,
+
+                'memory' => 128,
+                'tries' => 3,
+                'timeout' => 180,
+                'nice' => 0,
+            ],
+
+            'supervisor-reports' => [
+                'connection' => 'redis-reports',
+                'queue' => ['reports'],
+
+                'balance' => 'simple',
+                'processes' => 1,
+
+                'maxTime' => 0,
+                'maxJobs' => 0,
+
+                'memory' => 512,
+                'tries' => 3,
+                'timeout' => 1850,
+                'nice' => 0,
             ],
         ],
     ],
@@ -192,12 +504,18 @@ return [
     |--------------------------------------------------------------------------
     | File Watcher Configuration
     |--------------------------------------------------------------------------
+    |
+    | الملفات التي تتم مراقبتها عند استخدام وضع المراقبة
+    | المتوفر في نسخة Horizon المثبتة لديكم.
+    |
     */
+
     'watch' => [
         'app',
         'bootstrap',
         'config/**/*.php',
         'database/**/*.php',
+        'Modules/**/*.php',
         'public/**/*.php',
         'resources/**/*.php',
         'routes',
@@ -205,4 +523,5 @@ return [
         'composer.json',
         '.env',
     ],
+
 ];

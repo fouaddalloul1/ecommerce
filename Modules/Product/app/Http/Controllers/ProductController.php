@@ -4,6 +4,7 @@ namespace Modules\Product\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\MainResource;
+use Illuminate\Support\Facades\Log;
 use Modules\Product\Data\DecreaseProductStockData;
 use Modules\Product\Data\DestroyProductData;
 use Modules\Product\Http\Requests\IndexProductRequest;
@@ -19,11 +20,17 @@ use Modules\Product\Http\Requests\UpdateProductRequest;
 use Modules\Product\Repositories\ProductRepository;
 use Modules\Product\Http\Resources\ProductResource;
 use Symfony\Component\HttpFoundation\Response as ResponseAlias;
+use Modules\Product\Http\Requests\PopularProductsRequest;
+use Modules\Product\Http\Resources\PopularProductResource;
+use Modules\Product\Services\PopularProductService;
 use OpenApi\Annotations as OA;
 
 class ProductController extends Controller
 {
-    public function __construct(private ProductRepository $repository) {}
+    public function __construct(
+        private ProductRepository $repository,
+        private PopularProductService $popularProductService
+    ) {}
 
     /** 
      * @OA\Get(
@@ -210,7 +217,6 @@ class ProductController extends Controller
         );
     }
 
-
     /**
      * @OA\Put(
      *     path="/api/v1/products/update/{id}",
@@ -396,5 +402,114 @@ class ProductController extends Controller
         $products = $this->repository->indexByCategorySlug($data, $slug);
 
         return MainResource::make(ProductResource::collection($products), null, ResponseAlias::HTTP_OK);
+    }
+
+
+    /**
+
+     * @OA\Get(
+     * path="/api/v1/products/popular",
+     *tags={"Products"},  
+     *summary="Get popular products",  
+     *description="Returns the most popular products based on sales statistics. Response may be served from Redis cache.",  
+     *security={{"sanctum":{}}},  
+     * @OA\Response(
+     *    response=200,  
+     *    description="Popular products retrieved successfully",  
+     *    @OA\JsonContent(  
+     *         @OA\Property(
+     *            property="cache",  
+     *            type="boolean",  
+     *            example=false,  
+     *            description="Indicates whether data was returned from cache"  
+     *        ),  
+     *         @OA\Property(
+     *            property="data",  
+     *            type="array",  
+     *             @OA\Items(
+     *                type="object",  
+     *                 @OA\Property(
+     *                    property="id",  
+     *                    type="integer",  
+     *                    example=33  
+     *                ),  
+     *                 @OA\Property(
+     *                    property="category",  
+     *                    type="object",  
+     *                     @OA\Property(
+     *                        property="id",  
+     *                        type="integer",  
+     *                        example=3  
+     *                    ),  
+     *                     @OA\Property(
+     *                        property="name",  
+     *                        type="string",  
+     *                        example="Shoes"  
+     *                    )  
+     *                ),  
+     *                 @OA\Property(
+     *                    property="name",  
+     *                    type="string",  
+     *                    example="Product 3-3"  
+     *                ),  
+     *                 @OA\Property(
+     *                    property="price",  
+     *                    type="number",  
+     *                    format="float",  
+     *                    example=282  
+     *                ),  
+     *                 @OA\Property(
+     *                    property="image_url",  
+     *                    type="string",  
+     *                    nullable=true,  
+     *                    example=null  
+     *                ),  
+     *                 @OA\Property(
+     *                    property="is_active",  
+     *                    type="boolean",  
+     *                    example=true  
+     *                ),  
+     *                 @OA\Property(
+     *                    property="popularity",  
+     *                    type="object",  
+     *                     @OA\Property(
+     *                        property="sold_quantity",  
+     *                        type="integer",  
+     *                        example=1034  
+     *                    ),  
+     *                     @OA\Property(
+     *                        property="orders_count",  
+     *                        type="integer",  
+     *                        example=500  
+     *                    ),  
+     *                     @OA\Property(
+     *                        property="estimated_revenue",  
+     *                        type="number",  
+     *                        format="float",  
+     *                        example=291588  
+     *                    )  
+     *                )  
+     *            )  
+     *        )  
+     *    )  
+     *),  
+
+     * @OA\Response(
+ 
+     *    response=401,  
+     *    description="Unauthorized"  
+     *)  
+     *)  */
+
+    // part-2-6
+    public function popular(): MainResource
+    {
+        $products = $this->popularProductService->popular();
+
+        return MainResource::make(
+            $products,
+            null,
+            ResponseAlias::HTTP_OK
+        );
     }
 }
